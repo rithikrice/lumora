@@ -1,0 +1,11 @@
+company,stage,arr,growth_rate,gross_margin,cac_ltv_ratio,burn_rate,runway_months,logo_retention,nrr,valuation,employees
+DataAI Corp,Series A,4500000,2.1,0.72,0.28,220000,20,0.92,1.18,45000000,18
+MLVentures,Series A,6200000,2.5,0.75,0.31,280000,16,0.94,1.22,62000000,22
+InvestTech Pro,Series B,12000000,1.8,0.79,0.25,450000,24,0.96,1.28,120000000,45
+VCAnalyzer,Seed,2100000,3.2,0.68,0.42,150000,12,0.88,1.15,15000000,10
+SmartCap AI,Series A,5800000,2.3,0.76,0.29,260000,18,0.93,1.20,58000000,20
+DealFlow Plus,Series A,7500000,2.0,0.74,0.33,320000,15,0.91,1.19,75000000,28
+PortfolioIQ,Series B,15000000,1.6,0.81,0.22,500000,22,0.97,1.32,180000000,52
+FundMetrics,Seed,1800000,3.8,0.65,0.45,120000,10,0.85,1.10,12000000,8
+CapitalOS,Series A,5200000,2.4,0.77,0.30,240000,19,0.94,1.24,52000000,19
+InvestorEdge,Series A,4800000,2.2,0.73,0.32,230000,17,0.92,1.21,48000000,17

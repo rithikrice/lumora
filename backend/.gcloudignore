@@ -1,0 +1,18 @@
+# Ignore files for Cloud Build
+.gcloudignore
+.git
+.gitignore
+*.pyc
+__pycache__/
+venv/
+.env
+.env.*
+*.db
+*.pkl
+data/
+logs/
+test*.py
+*.md
+.DS_Store
+analystai-credentials.json
+*.log

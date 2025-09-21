@@ -1,0 +1,81 @@
+Page 1: Company Overview
+TechVenture AI - Revolutionizing Investment Analysis
+Founded 2023 | San Francisco, CA
+Mission: Democratize venture capital decision-making through AI
+
+Page 2: Problem Statement
+Current VC analysis is manual and time-consuming
+- 100+ hours per deal for comprehensive analysis
+- Human bias in investment decisions
+- Inconsistent evaluation criteria
+- Limited pattern recognition across deals
+
+Page 3: Solution
+AI-powered investment analysis platform
+- Automated document processing and extraction
+- Real-time risk assessment
+- Data-driven scoring models
+- Predictive analytics for startup success
+
+Page 4: Market Opportunity
+TAM: $50B global VC market
+SAM: $15B in US venture capital
+SOM: $500M in VC analysis tools by 2026
+Growing 25% YoY
+
+Page 5: Business Model
+SaaS subscription model
+- Starter: $500/month (5 analyses)
+- Professional: $2,000/month (25 analyses)
+- Enterprise: $10,000/month (unlimited)
+Annual contracts with quarterly billing
+
+Page 6: Traction
+Current metrics:
+- ARR: $5.2M
+- Growth Rate: 2.3x YoY
+- 47 paying customers
+- 95% logo retention
+- NRR: 125%
+- Average contract value: $110K
+
+Page 7: Financial Projections
+2024: $12M ARR
+2025: $28M ARR
+2026: $65M ARR
+Path to profitability: Q3 2025
+
+Page 8: Unit Economics
+Gross Margin: 78%
+CAC: $15,000
+LTV: $165,000
+LTV/CAC Ratio: 11x
+Payback Period: 8 months
+
+Page 9: Competition
+Main competitors:
+- Traditional consulting firms (slow, expensive)
+- Manual Excel models (error-prone)
+- Basic automation tools (limited AI)
+Our advantage: Full AI integration + human expertise
+
+Page 10: Team
+CEO: Jane Smith - Ex-Sequoia Partner, Stanford MBA
+CTO: Bob Johnson - Ex-Google AI, PhD ML
+VP Sales: Alice Chen - Ex-Salesforce, $50M quota achieved
+15 FTEs total, planning to hire 20 more in 2024
+
+Page 11: Fundraising
+Raising: $15M Series A
+Use of funds:
+- 40% Product development
+- 30% Sales & marketing
+- 20% Operations
+- 10% Buffer
+Previous: $3M seed from top angels
+
+Page 12: Key Risks & Mitigation
+Risk 1: Data privacy concerns → SOC2 compliance achieved
+Risk 2: AI accuracy questions → 94% accuracy validated
+Risk 3: Enterprise sales cycle → Land-and-expand strategy
+Risk 4: Talent acquisition → Strong equity packages + culture
