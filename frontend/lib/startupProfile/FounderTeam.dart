@@ -22,15 +22,15 @@ class FounderTeam extends StatelessWidget {
       data?['founders'] ??
           [
             {
-              'name': 'Alexandra Kumar',
+              'name': 'Shametha Naidu',
               'role': 'CEO & Co-Founder',
-              'initials': 'A',
+              'initials': 'SN',
               'color': 'accent1',
             },
             {
-              'name': 'Rahul Mehta',
+              'name': 'Rithik Chopra',
               'role': 'CTO & Co-Founder',
-              'initials': 'R',
+              'initials': 'RC',
               'color': 'accent2',
             },
           ],
@@ -39,13 +39,6 @@ class FounderTeam extends StatelessWidget {
     final metrics =
         data?['metrics'] ??
         {'integrityScore': '87%', 'culturalFit': 'High Alignment'};
-
-    final simulatorQ =
-        data?['simulatorQ'] ??
-        '💬 Q: How do you plan to handle a 20% revenue drop?';
-    final simulatorA =
-        data?['simulatorA'] ??
-        '🤖 AI: Founder likely responds optimistically with pivot options.';
 
     return Card(
       elevation: 6,
@@ -92,48 +85,6 @@ class FounderTeam extends StatelessWidget {
               metrics['culturalFit'] ?? 'High Alignment',
               kAccent2,
               Icons.handshake,
-            ),
-            const SizedBox(height: 24),
-
-            // Founder Response Simulator
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: kCard.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kTextSecondary.withOpacity(0.2)),
-              ),
-              child: ExpansionTile(
-                collapsedIconColor: kAccent1,
-                iconColor: kAccent2,
-                title: Text(
-                  "Founder Response Simulator",
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: kTextPrimary,
-                  ),
-                ),
-                children: [
-                  Divider(color: kTextSecondary.withOpacity(0.3)),
-                  ListTile(
-                    title: Text(
-                      simulatorQ,
-                      style: GoogleFonts.inter(
-                        color: kTextPrimary.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      simulatorA,
-                      style: GoogleFonts.inter(
-                        color: kTextSecondary.withOpacity(0.8),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

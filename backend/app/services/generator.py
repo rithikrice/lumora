@@ -51,9 +51,11 @@ class GeminiGenerator:
                 import google.generativeai as genai
                 genai.configure(api_key=api_key)
                 
-                # Use Flash for everything except critical tasks
-                self.gemini_flash = genai.GenerativeModel('gemini-1.5-flash')
-                logger.info("Gemini Flash API initialized for standard operations")
+                # Use Gemini 2.5 Pro for best performance and accuracy
+                self.gemini_flash = genai.GenerativeModel('gemini-2.5-pro')
+                # Fallback to 1.5 Pro for deep analysis
+                self.gemini_pro = genai.GenerativeModel('gemini-1.5-pro')
+                logger.info("Gemini 2.5 Pro initialized (2M context, adaptive thinking!)")
             else:
                 logger.warning("Gemini API key not configured")
         except ImportError:
@@ -65,19 +67,37 @@ class GeminiGenerator:
         """Initialize Vertex AI for critical investment analysis tasks."""
         try:
             import vertexai
-            from vertexai.generative_models import GenerativeModel
+            
+            # Try different import paths based on SDK version
+            try:
+                from vertexai.generative_models import GenerativeModel
+            except ImportError:
+                # Fallback for older SDK versions
+                try:
+                    from vertexai.preview.generative_models import GenerativeModel
+                except ImportError:
+                    # Another possible path
+                    from vertexai.language_models import GenerativeModel
+            
+            if not self.settings.GOOGLE_PROJECT_ID:
+                raise ValueError("GOOGLE_PROJECT_ID not configured")
             
             vertexai.init(
                 project=self.settings.GOOGLE_PROJECT_ID,
-                location=self.settings.GOOGLE_LOCATION
+                location=self.settings.GOOGLE_LOCATION or "us-central1"
             )
             
-            # Use Flash with correct version suffix as per Google Cloud docs
-            self.vertex_model = GenerativeModel('gemini-1.5-flash-002')  # Latest stable version
-            logger.info("Vertex AI initialized for critical investment decisions")
+            # Use Gemini 1.5 Pro via Vertex for critical tasks
+            self.vertex_model = GenerativeModel('gemini-1.5-pro-002')  # 1M context, best for analysis
+            logger.info("Vertex AI Gemini 1.5 Pro initialized for critical investment decisions")
             
+        except ImportError as e:
+            # Suppress import errors - Vertex AI is optional
+            logger.debug(f"Vertex AI SDK not available (will use Gemini Flash): {str(e)[:100]}")
+            self.vertex_model = None
         except Exception as e:
-            logger.warning(f"Vertex AI not available (will use Gemini Flash): {str(e)[:100]}")
+            # Log other errors but don't fail - fallback to Gemini Flash
+            logger.debug(f"Vertex AI initialization failed (will use Gemini Flash): {str(e)[:100]}")
             self.vertex_model = None
     
     def _get_model_for_task(self, criticality: TaskCriticality):
@@ -353,14 +373,26 @@ Format response as JSON:
         try:
             if model_type == "vertex":
                 # Use Vertex AI
-                from vertexai.generative_models import GenerationConfig
+                try:
+                    from vertexai.generative_models import GenerationConfig
+                except ImportError:
+                    # Fallback for different SDK versions
+                    try:
+                        from vertexai.preview.generative_models import GenerationConfig
+                    except ImportError:
+                        # If Vertex AI is not available, fall back to Gemini Flash
+                        logger.debug("Vertex AI GenerationConfig not available, using Gemini Flash instead")
+                        # Fall back to Gemini Flash generation
+                        if self.gemini_flash:
+                            response = self.gemini_flash.generate_content(prompt)
+                            return response.text
+                        return self._generate_structured_mock(prompt)
                 
                 config = GenerationConfig(
                     temperature=temperature,
                     max_output_tokens=max_tokens,
                     top_p=0.9,
-                    top_k=40,
-                    response_mime_type="application/json"  # Force JSON response
+                    top_k=40
                 )
                 
                 response = model.generate_content(

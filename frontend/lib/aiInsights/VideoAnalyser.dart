@@ -845,11 +845,17 @@ class _VideoAnalyzerPageState extends State<VideoAnalyzerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // add a gradient here for the background from light orange to light navy blue
       backgroundColor: kBackground,
       body: Container(
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white, Colors.blueGrey.shade50],
+            colors: [
+              const Color.fromARGB(255, 251, 209, 189),
+              Colors.white,
+              const Color.fromARGB(255, 251, 209, 189),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -888,8 +894,8 @@ class _VideoAnalyzerPageState extends State<VideoAnalyzerPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Upload your pitch video and receive detailed insights on clarity, passion, confidence, and technical skills. "
-                "Our AI uses advanced sentiment and gesture analysis to evaluate your presentation.",
+                "Unleash the power of AI on your pitch.\n"
+                "Your intelligent assistant analyzes every detail — clarity, tone, and confidence — helping you deliver presentations that win attention and trust.",
                 style: TextStyle(
                   fontSize: 16,
                   color: kTextSecondary,
@@ -977,20 +983,29 @@ class _VideoAnalyzerPageState extends State<VideoAnalyzerPage> {
               if (_pickedFile != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 28),
-                  child: ElevatedButton.icon(
-                    onPressed: _uploadVideo,
-                    icon: const Icon(Icons.analytics_outlined),
-                    label: const Text("Start AI Analysis"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 55),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _uploadVideo,
+                        icon: const Icon(Icons.analytics_outlined),
+                        label: const Text("Start AI Analysis"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 55),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          shadowColor: Colors.black26,
+                          elevation: 10,
+                        ),
                       ),
-                      shadowColor: Colors.black26,
-                      elevation: 10,
-                    ),
+                      SizedBox(height: 8),
+                      Text(
+                        "The video analysis may take a few minutes to process and give results based on the video content size. Please wait for the magic to happen!",
+                        style: TextStyle(color: kTextSecondary, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               if (_analysisData != null) _buildAnalysisCard(_analysisData!),

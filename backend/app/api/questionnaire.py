@@ -202,7 +202,7 @@ async def submit_answer(
         )
     
     # Save to database
-    db_service.save_questionnaire_response(
+    db_service.save_single_questionnaire_response(
         startup_id=request.startup_id,
         question_id=request.question_id,
         question=question.text,
@@ -213,6 +213,14 @@ async def submit_answer(
     # Get answered questions for progress
     answered = db_service.get_questionnaire_responses(request.startup_id)
     answered_ids = {r["question_id"] for r in answered}
+    
+    # Also save aggregated responses to startup record
+    # This makes data immediately available for grounding API
+    answers_dict = {r["question_id"]: r["answer"] for r in answered}
+    db_service.save_questionnaire_response(
+        startup_id=request.startup_id,
+        responses=answers_dict
+    )
     
     # Get next question
     answered_dict = {r["question_id"]: r["answer"] for r in answered}
@@ -372,6 +380,15 @@ async def complete_questionnaire(
     
     # Convert to dictionary
     answers = {r["question_id"]: r["answer"] for r in responses}
+    
+    # Save aggregated responses to startup record
+    # This makes them accessible to the grounding API
+    db_service.save_questionnaire_response(
+        startup_id=request.startup_id,
+        responses=answers
+    )
+    
+    logger.info(f"Saved {len(answers)} questionnaire responses for {request.startup_id}")
     
     # Generate summary
     summary = await questionnaire_service.generate_summary(answers)

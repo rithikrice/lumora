@@ -19,15 +19,16 @@ class Settings(BaseSettings):
     GOOGLE_LOCATION: str = "us-central1"
     GCP_BUCKET: str = "analystai-raw"
     
-    # Feature Flags
-    USE_VERTEX: bool = False
+    # Feature Flags - ALL GOOGLE CLOUD SERVICES
+    USE_VERTEX: bool = True  # Vertex AI for advanced models
     USE_MATCHING_ENGINE: bool = False
     USE_BIGQUERY: bool = False
+    USE_FIRESTORE: bool = True  # Firestore ONLY - NO SQLite (persistent cloud storage)
     
-    # Model Configuration
-    GEMINI_MODEL: str = "gemini-1.5-flash"  # Primary model for all standard tasks
-    VERTEX_MODEL: str = "gemini-1.5-flash"  # Use Flash for Vertex AI too (Pro not available)
-    EMBED_MODEL: str = "text-embedding-004"
+    # Model Configuration - Using Gemini 2.0 (latest available)
+    GEMINI_MODEL: str = "gemini-2.0-flash-exp"  # Latest & fastest with 2M context
+    VERTEX_MODEL: str = "gemini-1.5-pro-002"  # Most advanced for critical analysis
+    EMBED_MODEL: str = "text-embedding-004"  # Not used (no RAG)
     
     # Security
     API_KEY: str = "dev-secret"

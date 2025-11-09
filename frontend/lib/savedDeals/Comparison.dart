@@ -30,10 +30,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
   Future<void> _fetchComparison() async {
     final url = Uri.parse("${ApiConfig.baseUrl}/v1/ui/comparison");
-    final payload = {
-      "startup_ids": widget.startups.map((s) => s.id).toList(),
-      "metrics": ["score", "stage", "risks", "revenue", "customers", "runway"],
-    };
+    final payload = {"startup_ids": widget.startups.map((s) => s.id).toList()};
 
     try {
       final response = await http.post(
@@ -45,7 +42,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
         },
         body: jsonEncode(payload),
       );
-      debugPrint(response.body);
+
+      debugPrint("Comparison API status: ${response.statusCode}");
+      debugPrint("Response body: ${response.body}");
 
       if (response.statusCode == 200) {
         setState(() {
@@ -53,7 +52,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
           isLoading = false;
         });
       } else {
-        debugPrint("Comparison error: ${response.body}");
+        debugPrint("Comparison API error: ${response.body}");
         setState(() => isLoading = false);
       }
     } catch (e) {
@@ -81,31 +80,49 @@ class _ComparisonPageState extends State<ComparisonPage> {
               ? const Center(child: Text("No comparison data"))
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildComparisonTable(),
-                    const SizedBox(height: 24),
-                    _buildAdditionalCharts(),
-                    const SizedBox(height: 24),
-                    _buildScoreChart(),
-                    const SizedBox(height: 24),
-                    _buildRiskChart(),
-                  ],
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 248, 208, 190),
+                        Colors.white,
+                        Color.fromARGB(255, 248, 208, 190),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildComparisonTable(),
+                      const SizedBox(height: 24),
+
+                      Row(
+                        children: [
+                          Expanded(flex: 2, child: _buildScoreChart()),
+                          const SizedBox(width: 24),
+                          Expanded(flex: 1, child: _buildRiskChart()),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
     );
   }
 
+  /// 🧩 Comparison Table
   Widget _buildComparisonTable() {
     final comparison = comparisonData?["comparison"] ?? {};
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(kCardRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -113,10 +130,10 @@ class _ComparisonPageState extends State<ComparisonPage> {
       ),
       child: Table(
         border: TableBorder.all(color: Colors.grey.shade300),
-        columnWidths: {0: const FixedColumnWidth(150)},
+        columnWidths: {0: const FixedColumnWidth(140)},
         children: [
           TableRow(
-            decoration: BoxDecoration(color: kAccent),
+            decoration: const BoxDecoration(color: kAccent),
             children: [
               const Padding(
                 padding: EdgeInsets.all(12),
@@ -132,7 +149,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
                 (s) => Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    s.name,
+                    comparison[s.id]?["name"] ?? s.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -142,38 +159,33 @@ class _ComparisonPageState extends State<ComparisonPage> {
               ),
             ],
           ),
-          _buildRow("Stage", widget.startups.map((s) => s.stage).toList()),
+
+          _buildRow(
+            "Stage",
+            widget.startups
+                .map((s) => comparison[s.id]?["stage"]?.toString() ?? "-")
+                .toList(),
+          ),
           _buildRow(
             "Score",
             widget.startups
-                .map((s) => comparison[s.id]?["score"]?.toString() ?? "-")
+                .map(
+                  (s) =>
+                      (comparison[s.id]?["score"]?.toString() ?? "-")
+                          .toString(),
+                )
                 .toList(),
           ),
           _buildRow(
-            "Burn Rate",
-            widget.startups
-                .map((s) => comparison[s.id]?["burn_rate"]?.toString() ?? "-")
-                .toList(),
-          ),
-          _buildRow(
-            "Funding Raised",
-            widget.startups
-                .map((s) => comparison[s.id]?["customers"]?.toString() ?? "-")
-                .toList(),
-          ),
-          _buildRow(
-            "Runway",
+            "Runway (months)",
             widget.startups
                 .map((s) => comparison[s.id]?["runway"]?.toString() ?? "-")
                 .toList(),
           ),
           _buildRow(
-            "Risks",
+            "Churn (%)",
             widget.startups
-                .map(
-                  (s) =>
-                      (comparison[s.id]?["risks"] as List?)?.join(", ") ?? "-",
-                )
+                .map((s) => comparison[s.id]?["churn"]?.toString() ?? "-")
                 .toList(),
           ),
         ],
@@ -200,21 +212,26 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
   Widget _buildScoreChart() {
     final comparison = comparisonData?["comparison"] ?? {};
+
     final scores =
         widget.startups.map((s) {
-          return parseDouble(comparison[s.id]?["score"]);
+          final val = comparison[s.id]?["score"];
+          return val is num
+              ? val.toDouble()
+              : double.tryParse(val.toString()) ?? 0;
         }).toList();
 
     final maxY =
-        (scores.isEmpty ? 100 : scores.reduce((a, b) => a > b ? a : b)) * 1.2;
+        (scores.isEmpty ? 1 : scores.reduce((a, b) => a > b ? a : b)) * 1.2;
 
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kCardRadius),
       ),
       elevation: 4,
+      color: const Color(0xFFFFF6F1),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -224,7 +241,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 200,
+              height: 270,
               child: BarChart(
                 BarChartData(
                   maxY: maxY,
@@ -236,7 +253,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
                         BarChartRodData(
                           toY: scores[i],
                           color: kAccent,
-                          width: 24,
+                          width: 28,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ],
@@ -246,119 +263,59 @@ class _ComparisonPageState extends State<ComparisonPage> {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        interval: maxY / 5,
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (v, _) {
-                          int idx = v.toInt();
-                          if (idx < widget.startups.length)
-                            return Text(widget.startups[idx].name);
-                          return const Text('');
-                        },
-                      ),
-                    ),
-                  ),
-                  gridData: FlGridData(show: true),
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdditionalCharts() {
-    final comparison = comparisonData?["comparison"] ?? {};
-
-    final scores =
-        widget.startups.map((s) {
-          final val = comparison[s.id]?["score"];
-          return val != null ? (val as num).toDouble() : 0.0;
-        }).toList();
-
-    final burn =
-        widget.startups.map((s) {
-          final val = comparison[s.id]?["burn_rate"];
-          return val != null ? (val as num).toDouble() : 0.0;
-        }).toList();
-
-    final funding =
-        widget.startups.map((s) {
-          final val = comparison[s.id]?["customers"];
-          return val != null ? (val as num).toDouble() : 0.0;
-        }).toList();
-
-    final runway =
-        widget.startups.map((s) {
-          final val = comparison[s.id]?["runway"];
-          return val != null ? (val as num).toDouble() : 0.0;
-        }).toList();
-
-    return Column(children: [_buildCombinedChart()]);
-  }
-
-  Widget _buildBarChart(String title, List<double> values) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kCardRadius),
-      ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY:
-                      (values.isEmpty
-                          ? 0
-                          : values.reduce((a, b) => a > b ? a : b)) *
-                      1.2,
-                  barGroups:
-                      values.asMap().entries.map((e) {
-                        return BarChartGroupData(
-                          x: e.key,
-                          barRods: [
-                            BarChartRodData(
-                              toY: e.value,
-                              color: kAccent,
-                              width: 24,
-                              borderRadius: BorderRadius.circular(6),
+                        interval: 0.2,
+                        reservedSize: 32,
+                        getTitlesWidget:
+                            (v, _) => Text(
+                              "${(v * 100).toInt()}%",
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ],
-                        );
-                      }).toList(),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, interval: 20),
+                      ),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (v, _) {
-                          int idx = v.toInt();
-                          if (idx < widget.startups.length)
-                            return Text(widget.startups[idx].name);
+                          final idx = v.toInt();
+                          if (idx < widget.startups.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                widget.startups[idx].name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            );
+                          }
                           return const Text('');
                         },
                       ),
                     ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
-                  gridData: FlGridData(show: true),
+                  gridData: FlGridData(
+                    show: true,
+                    drawHorizontalLine: true,
+                    horizontalInterval: 0.2,
+                    getDrawingHorizontalLine:
+                        (value) => FlLine(
+                          color: Colors.grey.shade300,
+                          strokeWidth: 0.8,
+                        ),
+                  ),
                   borderData: FlBorderData(show: false),
                 ),
               ),
@@ -368,168 +325,226 @@ class _ComparisonPageState extends State<ComparisonPage> {
       ),
     );
   }
+
+  // Widget _buildRiskChart() {
+  //   final riskDistribution =
+  //       comparisonData?["risk_distribution"] as Map<String, dynamic>? ?? {};
+
+  //   final colors = [
+  //     Colors.redAccent,
+  //     Colors.deepOrange,
+  //     Colors.amber[700],
+  //     Colors.purpleAccent,
+  //   ];
+
+  //   final sections =
+  //       riskDistribution.entries.map((e) {
+  //         final idx = riskDistribution.keys.toList().indexOf(e.key);
+  //         return PieChartSectionData(
+  //           value: parseDouble(e.value),
+  //           color: colors[idx % colors.length],
+  //           title: '',
+  //           radius: 55,
+  //         );
+  //       }).toList();
+
+  //   return Card(
+  //     shape: RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.circular(kCardRadius),
+  //     ),
+  //     elevation: 4,
+  //     color: const Color(0xFFFFF6F1),
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(16),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           const Text(
+  //             'Risk Distribution',
+  //             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  //           ),
+  //           const SizedBox(height: 12),
+  //           SizedBox(
+  //             height: 220,
+  //             child: PieChart(
+  //               PieChartData(
+  //                 sections: sections,
+  //                 sectionsSpace: 2,
+  //                 centerSpaceRadius: 40,
+  //                 borderData: FlBorderData(show: false),
+  //               ),
+  //             ),
+  //           ),
+  //           const SizedBox(height: 12),
+  //           Wrap(
+  //             alignment: WrapAlignment.center,
+  //             spacing: 16,
+  //             runSpacing: 8,
+  //             children: List.generate(riskDistribution.length, (i) {
+  //               final key = riskDistribution.keys.elementAt(i);
+  //               final value = riskDistribution[key];
+  //               return Row(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   Container(
+  //                     width: 12,
+  //                     height: 12,
+  //                     decoration: BoxDecoration(
+  //                       color: colors[i % colors.length],
+  //                       borderRadius: BorderRadius.circular(3),
+  //                     ),
+  //                   ),
+  //                   const SizedBox(width: 6),
+  //                   Text(
+  //                     "$key (${value.toString()}%)",
+  //                     style: const TextStyle(
+  //                       fontSize: 12,
+  //                       color: Colors.black87,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               );
+  //             }),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildRiskChart() {
+    // Safely extract the risk distribution from API response
     final riskDistribution =
-        comparisonData?["risk_distribution"] as Map<String, dynamic>? ?? {};
+        (comparisonData?["risk_distribution"] as Map<String, dynamic>?) ?? {};
 
+    if (riskDistribution.isEmpty) {
+      return const Center(child: Text("No risk data available"));
+    }
+
+    // Define consistent colors for each segment
+    final colors = [
+      Colors.redAccent,
+      Colors.deepOrange,
+      Colors.amber[700],
+      Colors.purpleAccent,
+    ];
+
+    // Calculate total to normalize percentages for the pie chart
+    final total = riskDistribution.values.fold<num>(0, (sum, v) {
+      final parsed =
+          (v is num)
+              ? v
+              : double.tryParse(v.toString().replaceAll('%', '').trim()) ?? 0;
+      return sum + parsed;
+    });
+
+    // Build chart sections based on dynamic data
     final sections =
-        riskDistribution.entries.map((e) {
-          final idx = riskDistribution.keys.toList().indexOf(e.key);
+        riskDistribution.entries.map((entry) {
+          final idx = riskDistribution.keys.toList().indexOf(entry.key);
+          final double value =
+              (entry.value is num)
+                  ? (entry.value as num).toDouble()
+                  : double.tryParse(entry.value.toString()) ?? 0.0;
+
+          final percentage = total == 0 ? 0 : (value / total) * 100;
+
           return PieChartSectionData(
-            value: parseDouble(e.value),
-            color: Colors.primaries[idx % Colors.primaries.length],
-            title: e.key,
-            radius: 50,
+            value: value,
+            color: colors[idx % colors.length],
+            title: "${percentage.toStringAsFixed(0)}%",
+            radius: 60,
             titleStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
               color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
           );
         }).toList();
 
+    // Calculate overall weighted risk index (optional visual metric)
+    final riskIndex = total / riskDistribution.length;
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kCardRadius),
       ),
       elevation: 4,
+      color: const Color(0xFFFFF6F1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Risk Distribution',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Risk Distribution',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "Risk Index: ${riskIndex.toStringAsFixed(1)}%",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             SizedBox(
-              height: 200,
+              height: 220,
               child: PieChart(
                 PieChartData(
                   sections: sections,
                   sectionsSpace: 2,
-                  centerSpaceRadius: 30,
+                  centerSpaceRadius: 45,
                   borderData: FlBorderData(show: false),
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCombinedChart() {
-    final comparison = comparisonData?["comparison"] ?? {};
-
-    List<double> getMetric(String key) {
-      return widget.startups.map((s) {
-        final val = comparison[s.id]?[key];
-        if (val == null) return 0.0;
-        if (val is num) return val.toDouble();
-        if (val is String) return double.tryParse(val) ?? 0.0;
-        return 0.0;
-      }).toList();
-    }
-
-    final scores = getMetric("score");
-    final burn = getMetric("burn_rate");
-    final funding = getMetric("customers");
-    final runway = getMetric("runway");
-
-    final maxY =
-        [
-          ...scores,
-          ...burn,
-          ...funding,
-          ...runway,
-        ].fold(0.0, (prev, e) => e > prev ? e : prev) *
-        1.2;
-
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kCardRadius),
-      ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Combined Metrics",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 250,
-              child: BarChart(
-                BarChartData(
-                  maxY: maxY,
-                  groupsSpace: 20,
-                  barGroups: List.generate(widget.startups.length, (i) {
-                    return BarChartGroupData(
-                      x: i,
-                      barsSpace: 4,
-                      barRods: [
-                        BarChartRodData(
-                          toY: scores[i],
-                          color: Colors.blue,
-                          width: 10,
-                        ),
-                        BarChartRodData(
-                          toY: burn[i],
-                          color: Colors.green,
-                          width: 10,
-                        ),
-                        BarChartRodData(
-                          toY: funding[i],
-                          color: Colors.orange,
-                          width: 10,
-                        ),
-                        BarChartRodData(
-                          toY: runway[i],
-                          color: Colors.purple,
-                          width: 10,
-                        ),
-                      ],
-                    );
-                  }),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: maxY / 5,
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 20,
+              runSpacing: 10,
+              children: List.generate(riskDistribution.length, (i) {
+                final key = riskDistribution.keys.elementAt(i);
+                final value = riskDistribution[key];
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: colors[i % colors.length],
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (v, _) {
-                          int idx = v.toInt();
-                          if (idx < widget.startups.length)
-                            return Text(widget.startups[idx].name);
-                          return const Text('');
-                        },
+                    const SizedBox(width: 6),
+                    Text(
+                      "$key (${value.toString()}%)",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
                       ),
                     ),
-                  ),
-                  gridData: FlGridData(show: true),
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: const [
-                _LegendDot(color: Colors.blue, label: "Score"),
-                _LegendDot(color: Colors.green, label: "Burn Rate"),
-                _LegendDot(color: Colors.orange, label: "Funding"),
-                _LegendDot(color: Colors.purple, label: "Runway"),
-              ],
+                  ],
+                );
+              }),
             ),
           ],
         ),
@@ -542,22 +557,5 @@ class _ComparisonPageState extends State<ComparisonPage> {
     if (val is num) return val.toDouble();
     if (val is String) return double.tryParse(val) ?? 0.0;
     return 0.0;
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(width: 12, height: 12, color: color),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
   }
 }

@@ -6,11 +6,30 @@ from typing import Dict, Any, List
 
 from ..core.security import verify_api_key
 from ..core.logging import get_logger
-from ..services.neo4j_graph import get_knowledge_graph
-from ..services.langgraph_agents import get_analysis_workflow
-from ..services.retrieval import HybridRetriever
 from ..services.google_integrations import get_google_integrations
 from ..models.dto import Evidence, DocumentType
+
+# Optional imports - features may not be available
+try:
+    from ..services.neo4j_graph import get_knowledge_graph
+    NEO4J_AVAILABLE = True
+except ImportError:
+    NEO4J_AVAILABLE = False
+    get_knowledge_graph = None
+
+try:
+    from ..services.langgraph_agents import get_analysis_workflow
+    LANGGRAPH_AVAILABLE = True
+except ImportError:
+    LANGGRAPH_AVAILABLE = False
+    get_analysis_workflow = None
+
+try:
+    from ..services.retrieval import HybridRetriever
+    RETRIEVAL_AVAILABLE = True
+except ImportError:
+    RETRIEVAL_AVAILABLE = False
+    HybridRetriever = None
 
 logger = get_logger(__name__)
 

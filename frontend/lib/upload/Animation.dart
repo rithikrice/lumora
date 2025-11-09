@@ -6,7 +6,7 @@ import 'dart:ui_web' as ui_web;
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // ✅ Needed for MediaType
+import 'package:http_parser/http_parser.dart';
 import 'package:lottie/lottie.dart';
 import 'package:lumora/config/ApiConfig.dart';
 import 'package:lumora/homepage/HomePage.dart';
@@ -34,6 +34,7 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
   bool? _uploadSuccess;
   String? errorMessage;
   String? rawResponseBody;
+  late StartupFormData formData;
 
   // 🔹 Video upload state
   html.File? _pickedFile;
@@ -44,6 +45,8 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
   @override
   void initState() {
     super.initState();
+    formData = widget.formData;
+
     _submitToBackend();
   }
 
@@ -108,7 +111,12 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
     final request =
         http.MultipartRequest('POST', uploadUrl)
           ..headers['X-API-Key'] = 'dev-secret'
-          ..fields['startup_id'] = 'techventure-2024'
+          ..fields['startup_id'] =
+              widget.formData.companyName
+                  .trim()
+                  .replaceAll(RegExp(r'\s+'), '-')
+                  .replaceAll(RegExp(r'[^a-zA-Z0-9\-]'), '')
+                  .toLowerCase()
           ..fields['video_type'] = 'pitch'
           ..files.add(
             http.MultipartFile.fromBytes(
@@ -128,7 +136,7 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
       if (response.statusCode == 200) {
         final decoded = json.decode(respStr);
         final videoId = decoded['video_id'];
-        debugPrint("✅ Video uploaded. Video ID: $videoId");
+        debugPrint("Video uploaded. Video ID: $videoId");
 
         // 🔹 Now call analyze
         final analyzeUrl = Uri.parse("${ApiConfig.baseUrl}/v1/video/analyze");
@@ -143,7 +151,7 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
         );
 
         debugPrint(
-          "⬅️ Analyze response: ${analyzeResponse.statusCode} ${analyzeResponse.body}",
+          "Analyze response: ${analyzeResponse.statusCode} ${analyzeResponse.body}",
         );
 
         if (analyzeResponse.statusCode == 200) {
@@ -270,7 +278,7 @@ class _SubmissionAnimationPageState extends State<SubmissionAnimationPage> {
       };
 
       final url = Uri.parse("${ApiConfig.baseUrl}/v1/questionnaire/submit");
-      debugPrint("➡️ POST $url");
+      debugPrint("POST $url");
       debugPrint(
         "Headers: ${{"X-API-Key": "dev-secret", "Content-Type": "application/json"}}",
       );

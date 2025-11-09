@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any
 import json
+import google.generativeai as genai
 
 from ..models.dto import (
     AnalyzeRequest, AnalyzeResponse,
@@ -15,19 +16,22 @@ from ..models.dto import (
 from ..core.security import verify_api_key
 from ..core.logging import get_logger, log_api_call
 from ..core.errors import InsufficientEvidenceError
-from ..services.retrieval import HybridRetriever
+from ..core.config import get_settings
+from ..services.analysis_gemini import analyze_startup_with_gemini
 from ..services.generator import GeminiGenerator, TaskCriticality
 from ..services.scoring import StartupScorer, CounterfactualAnalyzer
 from ..services.stress import StressTestService
 from ..services.peers import PeerComparisonService
 from ..services.hybrid_analysis import HybridAnalysisService
 
+settings = get_settings()
+
 router = APIRouter()
 logger = get_logger(__name__)
 hybrid_service = HybridAnalysisService()
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
+@router.post("/analyze", response_model=AnalyzeResponse, deprecated=True)
 async def analyze_startup(
     request: AnalyzeRequest,
     api_key: str = Depends(verify_api_key)
@@ -39,7 +43,7 @@ async def analyze_startup(
         api_key: API key for authentication
         
     Returns:
-        Analysis response with insights
+        Analysis response with insights. NOTE: This endpoint is deprecated; use GET /v1/startups/{startup_id}/details and read ai_analysis.
         
     Raises:
         HTTPException: If analysis fails
@@ -47,22 +51,24 @@ async def analyze_startup(
     log_api_call("/analyze", "POST", startup_id=request.startup_id)
     
     try:
-        # Multi-stage retrieval for comprehensive analysis
-        # Get questionnaire data directly from database (NO CHUNKING!)
-        from ..services.database import DatabaseService
-        db = DatabaseService()
-        startup_data = db.get_startup(request.startup_id)
+        # Use Gemini 2.0 Flash with full context (no RAG!)
+        logger.info(f"Analyzing {request.startup_id} with Gemini 2.0 Flash (full context)")
         
-        if not startup_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No data found for startup {request.startup_id}. Please complete questionnaire first."
-            )
+        analysis = await analyze_startup_with_gemini(
+            request.startup_id,
+            persona_weights=request.persona.dict() if request.persona else None
+        )
         
-        responses = startup_data.get("questionnaire_responses", {})
+        return analysis
         
-        # Create evidence directly from questionnaire responses
-        financial_evidence = []
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error(f"Analysis validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
         if responses.get("arr"):
             financial_evidence.append(Evidence(
                 id=f"{request.startup_id}_arr",

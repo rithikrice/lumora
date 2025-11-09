@@ -58,9 +58,47 @@ async def export_report(
                 break
         
         # Export based on format
+        exporter = GoogleDocsExporter()
+        
         if request.format.value == "gdoc":
-            exporter = GoogleDocsExporter()
-            doc_info = await exporter.create_comprehensive_report(
+            try:
+                doc_info = await exporter.create_comprehensive_report(
+                    analysis=analysis,
+                    include_appendix=request.include_appendix,
+                    questionnaire_data=startup_data.get("questionnaire_responses") if startup_data else None,
+                    video_analysis=video_analysis
+                )
+                
+                response = ExportResponse(
+                    startup_id=request.startup_id,
+                    format=request.format,
+                    document_url=doc_info.get("document_url"),
+                    document_id=doc_info.get("document_id"),
+                    success=True,
+                    message="Report exported successfully to Google Docs"
+                )
+            except Exception as gdoc_error:
+                logger.warning(f"Google Docs export failed, falling back to local HTML: {str(gdoc_error)}")
+                # Fallback to local HTML export
+                doc_info = exporter._create_local_comprehensive_report(
+                    analysis=analysis,
+                    include_appendix=request.include_appendix,
+                    questionnaire_data=startup_data.get("questionnaire_responses") if startup_data else None,
+                    video_analysis=video_analysis
+                )
+                
+                response = ExportResponse(
+                    startup_id=request.startup_id,
+                    format="html",  # Changed format to reflect actual export
+                    document_url=doc_info.get("document_url"),
+                    document_id=doc_info.get("document_id"),
+                    success=True,
+                    message="Report exported as HTML (Google Docs unavailable)"
+                )
+        
+        elif request.format.value == "html":
+            # Direct HTML export
+            doc_info = exporter._create_local_comprehensive_report(
                 analysis=analysis,
                 include_appendix=request.include_appendix,
                 questionnaire_data=startup_data.get("questionnaire_responses") if startup_data else None,
@@ -73,7 +111,7 @@ async def export_report(
                 document_url=doc_info.get("document_url"),
                 document_id=doc_info.get("document_id"),
                 success=True,
-                message="Report exported successfully"
+                message="Report exported as HTML"
             )
             
         elif request.format.value == "json":
@@ -122,9 +160,21 @@ async def export_report(
         raise
     except Exception as e:
         logger.error(f"Export failed: {str(e)}", exc_info=True)
+        error_msg = str(e)
+        
+        # Provide more specific error messages
+        if "Insufficient startup data" in error_msg:
+            detail = "Cannot export: startup has insufficient data for analysis"
+        elif "startup not found" in error_msg.lower():
+            detail = f"Startup '{request.startup_id}' not found"
+        elif "Google" in error_msg or "docs" in error_msg.lower():
+            detail = "Google Docs API unavailable. Try format='json' instead."
+        else:
+            detail = f"Export failed: {error_msg}"
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Export failed"
+            detail=detail
         )
 
 
@@ -144,5 +194,11 @@ async def export_to_google_doc(
     Returns:
         Export response with document URL
     """
-    request.format = "gdoc"  # Force Google Doc format
-    return await export_report(request, api_key)
+    # Create a new request with gdoc format (Pydantic models are immutable)
+    gdoc_request = ExportRequest(
+        startup_id=request.startup_id,
+        format="gdoc",
+        include_evidence=request.include_evidence,
+        include_appendix=request.include_appendix
+    )
+    return await export_report(gdoc_request, api_key)

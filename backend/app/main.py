@@ -17,7 +17,7 @@ from .core.errors import (
 from .models.dto import HealthResponse
 
 # Import API routers
-from .api import health, ingest, analyze, export, questionnaire, advanced, video, ui
+from .api import health, ingest, analyze, export, questionnaire, advanced, video, ui, voice, finance, pitch_deck, checklist, startup_management, ai_insights, analysis_views
 
 # Initialize logging
 setup_logging()
@@ -68,13 +68,20 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 # Include API routers
 app.include_router(health.router, prefix="/health", tags=["Health"])
+app.include_router(startup_management.router, prefix="/v1", tags=["Startup Management"])
 app.include_router(ingest.router, prefix="/v1", tags=["Ingestion"])
 app.include_router(analyze.router, prefix="/v1", tags=["Analysis"])
 app.include_router(export.router, prefix="/v1", tags=["Export"])
 app.include_router(questionnaire.router, prefix="/v1", tags=["Questionnaire"])
 app.include_router(advanced.router, prefix="/v1/advanced", tags=["Advanced Features"])
 app.include_router(video.router, prefix="/v1", tags=["Video Analysis"])
+app.include_router(voice.router, prefix="/v1", tags=["Voice Agent"])
+app.include_router(finance.router, prefix="/v1", tags=["Finance & News"])
+app.include_router(pitch_deck.router, prefix="/v1", tags=["Pitch Deck"])
+app.include_router(checklist.router, prefix="/v1", tags=["Checklist"])
 app.include_router(ui.router, prefix="/v1/ui", tags=["UI Endpoints"])
+app.include_router(ai_insights.router, prefix="/v1", tags=["AI Insights"])
+app.include_router(analysis_views.router, prefix="/v1", tags=["Analysis Views"])
 
 
 @app.get("/", response_model=HealthResponse)

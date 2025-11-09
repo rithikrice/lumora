@@ -40,14 +40,6 @@ class InvestmentHighlightsPage extends StatelessWidget {
                 const SizedBox(width: 20),
                 Expanded(
                   child: _highlightCard(
-                    "Use of Funds",
-                    data['useOfFunds'] ?? "-",
-                    kAccent1,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _highlightCard(
                     "Exit Strategy",
                     data['exitStrategy'] ?? "-",
                     kAccent2,
@@ -57,6 +49,44 @@ class InvestmentHighlightsPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _keyStrengths(strengths),
+            // const SizedBox(height: 20),
+            // Container(
+            //   padding: const EdgeInsets.all(24),
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     borderRadius: BorderRadius.circular(18),
+            //     border: Border.all(color: kBorder),
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Colors.black12,
+            //         blurRadius: 8,
+            //         offset: const Offset(0, 4),
+            //       ),
+            //     ],
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       Text(
+            //         "Use of Funds",
+            //         style: GoogleFonts.inter(
+            //           fontSize: 20,
+            //           fontWeight: FontWeight.w600,
+            //           color: kNeutral,
+            //         ),
+            //       ),
+            //       const SizedBox(height: 12),
+            //       Text(
+            //         data['useOfFunds'] ?? "-",
+            //         style: GoogleFonts.inter(
+            //           fontSize: 14,
+            //           color: kPrimary,
+            //           fontWeight: FontWeight.w600,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -94,7 +124,7 @@ class InvestmentHighlightsPage extends StatelessWidget {
           ],
         ),
         child: SizedBox(
-          height: 110,
+          height: 90,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -111,8 +141,8 @@ class InvestmentHighlightsPage extends StatelessWidget {
                 value,
                 style: GoogleFonts.inter(
                   color: kPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -143,9 +173,9 @@ class InvestmentHighlightsPage extends StatelessWidget {
           Text(
             "Key Strengths",
             style: GoogleFonts.inter(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: kPrimary,
+              color: kNeutral,
             ),
           ),
           const SizedBox(height: 12),
@@ -159,7 +189,11 @@ class InvestmentHighlightsPage extends StatelessWidget {
                   Expanded(
                     child: Text(
                       s.toString(),
-                      style: GoogleFonts.inter(fontSize: 14, color: kNeutral),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: kPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

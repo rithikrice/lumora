@@ -55,11 +55,11 @@ def _get_overall_status(confidence: float) -> str:
 class VideoUploadResponse(BaseModel):
     """Response for video upload."""
     video_id: str
-    startup_id: str
+    startup_id: str  # Auto-generated if not provided
     filename: str
     size_mb: float
     analysis: Optional[Dict[str, Any]] = None  # Include analysis if processed
-    message: str = "Video uploaded successfully"
+    message: str = "Video uploaded and analyzed successfully"
 
 
 class VideoAnalysisResponse(BaseModel):
@@ -79,11 +79,16 @@ class VideoAnalysisResponse(BaseModel):
 
 @router.post("/video/upload", response_model=VideoUploadResponse)
 async def upload_pitch_video(
-    startup_id: str = Form(...),
     file: UploadFile = File(...),
+    startup_id: Optional[str] = Form(None),
     api_key: str = Depends(verify_api_key)
 ) -> VideoUploadResponse:
-    """Upload a founder pitch video for analysis."""
+    """Upload a founder pitch video for analysis.
+    
+    Args:
+        file: Video file to analyze
+        startup_id: Optional startup identifier (auto-generated if not provided)
+    """
     logger.info(f"Uploading video for {startup_id}: {file.filename}")
     
     try:
@@ -101,7 +106,12 @@ async def upload_pitch_video(
         if size_mb > 100:  # 100MB limit for hackathon
             raise HTTPException(400, "Video must be under 100MB")
         
-        # Generate video ID
+        # Generate video ID and startup_id if not provided
+        if not startup_id:
+            import hashlib
+            from datetime import datetime
+            startup_id = f"video_{hashlib.md5(file.filename.encode()).hexdigest()[:8]}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        
         video_id = f"{startup_id}-video-{hash(file.filename)}"
         
         # Store video (in memory for hackathon)
@@ -247,12 +257,47 @@ async def analyze_pitch_video(
         # Extract analysis components and ensure consistent structure
         result = analysis.get("analysis", {})
         
-        # Ensure all fields are present and meaningful
-        founder_analysis = result.get("founder_analysis", {})
-        sentiment_analysis = result.get("sentiment_analysis", {})
-        content_analysis = result.get("content_quality", result.get("content_analysis", {}))
-        investment_signals = result.get("investment_signals", {})
-        visual_analysis = analysis.get("visual_analysis", result.get("visual_analysis", {}))
+        # Build safe defaults if sections are missing
+        def _defaults():
+            return {
+                "founder_analysis": {
+                    "confidence_score": 0.5,
+                    "communication_clarity": 0.5,
+                    "technical_depth": 0.5,
+                    "passion_score": 0.5,
+                    "authenticity": 0.5
+                },
+                "sentiment_analysis": {
+                    "overall_sentiment": "neutral",
+                    "confidence": 0.5,
+                    "key_emotions": ["professional"]
+                },
+                "content_quality": {
+                    "problem_articulation": 0.5,
+                    "solution_clarity": 0.5,
+                    "market_understanding": 0.5
+                },
+                "investment_signals": {
+                    "founder_quality": 0.5,
+                    "recommended_action": "pass",
+                    "key_strengths": ["Professional appearance"],
+                    "concerns": ["Needs more clarity"]
+                },
+                "visual_analysis": {
+                    "faces_detected": 0,
+                    "emotions": [],
+                    "labels": [],
+                    "confidence_indicators": []
+                }
+            }
+        d = _defaults()
+        
+        founder_analysis = result.get("founder_analysis") or d["founder_analysis"]
+        sentiment_analysis = result.get("sentiment_analysis") or d["sentiment_analysis"]
+        # prefer content_quality then fallback to content_analysis then defaults
+        content_analysis = result.get("content_quality") or result.get("content_analysis") or d["content_quality"]
+        investment_signals = result.get("investment_signals") or d["investment_signals"]
+        visual_analysis = analysis.get("visual_analysis") or result.get("visual_analysis") or d["visual_analysis"]
         
         # Get transcript for context
         transcript = analysis.get("transcript", "")
@@ -320,59 +365,7 @@ async def analyze_pitch_video(
         raise
     except Exception as e:
         logger.error(f"Video analysis failed: {e}")
-        # Return mock analysis for demo
-        return VideoAnalysisResponse(
-            success=True,
-            startup_id="demo",
-            video_id=video_id,
-            founder_analysis={
-                "confidence_score": 0.85,
-                "clarity_score": 0.78,
-                "passion_score": 0.92,
-                "authenticity_score": 0.88,
-                "communication_effectiveness": 0.83,
-                "overall_impression": "positive"
-            },
-            sentiment_analysis={
-                "overall_sentiment": "positive",
-                "emotional_range": ["confident", "enthusiastic", "determined"],
-                "energy_level": "high",
-                "conviction_level": "strong"
-            },
-            content_analysis={
-                "key_points": [
-                    "Revolutionary AI technology",
-                    "Strong market traction",
-                    "Experienced team with domain expertise"
-                ],
-                "clarity_of_vision": 0.87,
-                "problem_articulation": 0.82,
-                "solution_presentation": 0.85,
-                "market_understanding": 0.90
-            },
-            investment_signals={
-                "founder_quality": 0.86,
-                "presentation_quality": 0.83,
-                "investability_score": 0.84,
-                "recommended_action": "strong_yes"
-            },
-            red_flags=[],
-            green_flags=[
-                {"flag": "Deep domain expertise", "impact": "high"},
-                {"flag": "Strong communication skills", "impact": "high"},
-                {"flag": "Clear product-market fit", "impact": "high"}
-            ],
-            key_quotes=[
-                "We're not just building a product, we're creating a category",
-                "Our customers tell us we've transformed their business"
-            ],
-            visual_analysis={
-                "professional_appearance": 0.90,
-                "background_quality": "professional",
-                "eye_contact": "excellent",
-                "body_language": "confident and open"
-            }
-        )
+        raise HTTPException(500, f"Video analysis failed: {str(e)}")
 
 
 # Removed redundant insights endpoint - all data available via /v1/video/analyze

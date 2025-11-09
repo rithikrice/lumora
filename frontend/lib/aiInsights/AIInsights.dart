@@ -1,8 +1,309 @@
+// import 'package:flutter/material.dart';
+// import 'package:google_fonts/google_fonts.dart';
+
+// class AiInsightsDashboard extends StatefulWidget {
+//   const AiInsightsDashboard({super.key});
+
+//   @override
+//   State<AiInsightsDashboard> createState() => _AiInsightsDashboardState();
+// }
+
+// class _AiInsightsDashboardState extends State<AiInsightsDashboard>
+//     with TickerProviderStateMixin {
+//   late TabController _tabController;
+//   late AnimationController _controller;
+
+//   final Color kOrange = const Color(0xFFFF6B2C);
+//   final Color kSapphire = const Color(0xFF3E2CFF);
+//   final Color kLightBg = const Color(0xFFF7F8FA);
+//   // --- Refined Theme Colors ---
+//   final Color kAccent = const Color(0xFFF35B04);
+//   final Color kBackgroundTop = const Color(0xFFF6F7FA);
+//   final Color kBackgroundBottom = const Color(0xFFEFF1F5);
+//   final Color kCard = Colors.white;
+//   static const Color kTextPrimary = Color(0xFF1B1F27);
+//   static const Color kTextSecondary = Color(0xFF6B7280);
+
+//   Widget _buildTabBar() {
+//     return Container(
+//       margin: const EdgeInsets.symmetric(horizontal: 20),
+//       decoration: BoxDecoration(
+//         color: Colors.white,
+//         borderRadius: BorderRadius.circular(14),
+//         boxShadow: [
+//           BoxShadow(
+//             color: Colors.black.withOpacity(0.04),
+//             blurRadius: 12,
+//             offset: const Offset(0, 4),
+//           ),
+//         ],
+//       ),
+//       child: TabBar(
+//         controller: _tabController,
+//         indicatorSize: TabBarIndicatorSize.tab,
+//         indicator: BoxDecoration(
+//           color: kAccent,
+//           borderRadius: BorderRadius.circular(12),
+//         ),
+//         labelColor: Colors.white,
+//         unselectedLabelColor: kTextPrimary.withOpacity(0.9),
+//         labelStyle: GoogleFonts.poppins(
+//           fontWeight: FontWeight.w600,
+//           fontSize: 12,
+//         ),
+//         tabs: const [
+//           Tab(icon: Icon(Icons.analytics), text: "  Behavioral Intelligence  "),
+//           Tab(
+//             icon: Icon(Icons.show_chart_rounded),
+//             // reduce the font size slightly to fit longer text
+//             text: "  Stress Testing & KPIs  ",
+//           ),
+//           Tab(
+//             icon: Icon(Icons.public_rounded),
+//             text: "  Market & Ecosystem Intelligence  ",
+//           ),
+//           Tab(
+//             icon: Icon(Icons.dashboard_rounded),
+//             text: "  Decision Support & Simulations  ",
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _tabController = TabController(length: 4, vsync: this);
+//     _controller = AnimationController(
+//       vsync: this,
+//       duration: const Duration(seconds: 2),
+//     )..repeat(reverse: true);
+//   }
+
+//   @override
+//   void dispose() {
+//     _controller.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       backgroundColor: kLightBg,
+//       body: SafeArea(
+//         child: Column(
+//           children: [
+//             // --- Header ---
+//             Container(
+//               padding: const EdgeInsets.all(24),
+//               width: double.infinity,
+//               decoration: BoxDecoration(
+//                 gradient: LinearGradient(
+//                   colors: [kOrange, kSapphire],
+//                   begin: Alignment.topLeft,
+//                   end: Alignment.bottomRight,
+//                 ),
+//                 borderRadius: const BorderRadius.only(
+//                   bottomLeft: Radius.circular(32),
+//                   bottomRight: Radius.circular(32),
+//                 ),
+//               ),
+//               child: AnimatedBuilder(
+//                 animation: _controller,
+//                 builder: (_, child) {
+//                   return Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       ShaderMask(
+//                         shaderCallback:
+//                             (bounds) => LinearGradient(
+//                               colors: [
+//                                 Colors.white,
+//                                 Colors.orangeAccent,
+//                                 Colors.white,
+//                               ],
+//                               stops: [0, _controller.value, 1],
+//                             ).createShader(bounds),
+//                         child: Text(
+//                           "AI Insights",
+//                           style: const TextStyle(
+//                             color: Colors.white,
+//                             fontWeight: FontWeight.bold,
+//                             fontSize: 32,
+//                           ),
+//                         ),
+//                       ),
+//                       const SizedBox(height: 8),
+//                       Text(
+//                         "Where AI does the magic for Venture Capital due diligence ✨",
+//                         style: TextStyle(
+//                           color: Colors.white.withOpacity(0.85),
+//                           fontSize: 16,
+//                         ),
+//                       ),
+//                     ],
+//                   );
+//                 },
+//               ),
+//             ),
+
+//             Padding(
+//               padding: const EdgeInsets.only(top: 20),
+//               child: _buildTabBar(),
+//             ),
+
+//             // --- Tab Contents ---
+//             Expanded(
+//               child: TabBarView(
+//                 controller: _tabController,
+//                 children: const [
+//                   _Section(features: _behavioralFeatures),
+//                   _Section(features: _stressFeatures),
+//                   _Section(features: _marketFeatures),
+//                   _Section(features: _decisionFeatures),
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// // --- Section + Feature Tiles ---
+// class _Section extends StatelessWidget {
+//   final List<Feature> features;
+//   const _Section({required this.features});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListView.separated(
+//       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+//       itemCount: features.length,
+//       separatorBuilder: (_, __) => const SizedBox(height: 20),
+//       itemBuilder: (context, i) => FeatureTile(feature: features[i]),
+//     );
+//   }
+// }
+
+// class FeatureTile extends StatefulWidget {
+//   final Feature feature;
+//   const FeatureTile({super.key, required this.feature});
+
+//   @override
+//   State<FeatureTile> createState() => _FeatureTileState();
+// }
+
+// class _FeatureTileState extends State<FeatureTile> {
+//   bool expanded = false;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final f = widget.feature;
+//     final Color kOrange = const Color(0xFFFF6B2C);
+
+//     return AnimatedContainer(
+//       duration: const Duration(milliseconds: 100),
+//       curve: Curves.easeInOut,
+//       decoration: BoxDecoration(
+//         color: Colors.white,
+//         borderRadius: BorderRadius.circular(20),
+//         boxShadow: [
+//           BoxShadow(
+//             color: Colors.black12,
+//             blurRadius: f.highlight ? 12 : 6,
+//             // offset: const Offset(0, f.highlight ? 6 : 3),
+//           ),
+//         ],
+//       ),
+//       child: InkWell(
+//         borderRadius: BorderRadius.circular(20),
+//         onTap: () => setState(() => expanded = !expanded),
+//         child: Padding(
+//           padding: const EdgeInsets.all(20),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               // Icon + title
+//               Row(
+//                 children: [
+//                   Container(
+//                     padding: const EdgeInsets.all(12),
+//                     decoration: BoxDecoration(
+//                       color: kOrange.withOpacity(0.1),
+//                       shape: BoxShape.circle,
+//                     ),
+//                     child: Icon(f.icon, color: kOrange, size: 28),
+//                   ),
+//                   const SizedBox(width: 16),
+//                   Expanded(
+//                     child: Text(
+//                       f.title,
+//                       style: TextStyle(
+//                         color: Colors.black87,
+//                         fontSize: 17,
+//                         fontWeight:
+//                             f.highlight ? FontWeight.bold : FontWeight.w600,
+//                       ),
+//                     ),
+//                   ),
+//                   AnimatedRotation(
+//                     turns: expanded ? 0.5 : 0,
+//                     duration: const Duration(milliseconds: 300),
+//                     child: const Icon(Icons.keyboard_arrow_down),
+//                   ),
+//                 ],
+//               ),
+//               const SizedBox(height: 12),
+//               AnimatedCrossFade(
+//                 firstChild: const Text(
+//                   "Tap to expand",
+//                   style: TextStyle(color: Colors.grey, fontSize: 13),
+//                 ),
+//                 secondChild: Text(
+//                   f.insight,
+//                   style: const TextStyle(color: Colors.black87, fontSize: 14),
+//                 ),
+//                 crossFadeState:
+//                     expanded
+//                         ? CrossFadeState.showSecond
+//                         : CrossFadeState.showFirst,
+//                 duration: const Duration(milliseconds: 250),
+//               ),
+//               if (f.highlight) ...[
+//                 const SizedBox(height: 12),
+//                 Container(
+//                   height: 4,
+//                   width: 60,
+//                   decoration: BoxDecoration(
+//                     gradient: LinearGradient(
+//                       colors: [kOrange, Colors.deepOrangeAccent],
+//                     ),
+//                     borderRadius: BorderRadius.circular(2),
+//                   ),
+//                 ),
+//               ],
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:lumora/config/ApiConfig.dart';
+
+// ------------------ MAIN SCREEN ------------------
 
 class AiInsightsDashboard extends StatefulWidget {
-  const AiInsightsDashboard({super.key});
+  final String startupId;
+  const AiInsightsDashboard({super.key, required this.startupId});
 
   @override
   State<AiInsightsDashboard> createState() => _AiInsightsDashboardState();
@@ -16,14 +317,267 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
   final Color kOrange = const Color(0xFFFF6B2C);
   final Color kSapphire = const Color(0xFF3E2CFF);
   final Color kLightBg = const Color(0xFFF7F8FA);
-  // --- Refined Theme Colors ---
   final Color kAccent = const Color(0xFFF35B04);
   final Color kBackgroundTop = const Color(0xFFF6F7FA);
   final Color kBackgroundBottom = const Color(0xFFEFF1F5);
   final Color kCard = Colors.white;
   static const Color kTextPrimary = Color(0xFF1B1F27);
-  static const Color kTextSecondary = Color(0xFF6B7280);
 
+  bool loading = true;
+  String? error;
+
+  // --- Dynamic API Data ---
+  List<Feature> behavioralFeatures = _behavioralFeatures;
+  List<Feature> stressFeatures = _stressFeatures;
+  List<Feature> marketFeatures = _marketFeatures;
+  List<Feature> decisionFeatures = _decisionFeatures;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _fetchAiInsights();
+  }
+
+  Future<void> _fetchAiInsights() async {
+    final url = Uri.parse(
+      "${ApiConfig.baseUrl}/v1/ai-insights/${widget.startupId}",
+    );
+    try {
+      final res = await http.get(
+        url,
+        headers: {'accept': 'application/json', 'X-API-Key': 'dev-secret'},
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          behavioralFeatures = _mapBehavioralFeatures(data);
+          stressFeatures = _mapStressFeatures(data);
+          marketFeatures = _mapMarketFeatures(data);
+          decisionFeatures = _mapDecisionFeatures(data);
+          loading = false;
+        });
+      } else {
+        setState(() {
+          loading = false;
+          error = "Bad response: ${res.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        loading = false;
+      });
+    }
+  }
+
+  // --- MAPPING FUNCTIONS ---
+
+  List<Feature> _mapBehavioralFeatures(Map<String, dynamic> json) {
+    final fb = json['founder_behavioral_fingerprint'];
+    final ts = json['founder_truth_signature'];
+    final cf = json['cultural_fit_alignment'];
+
+    if (fb == null && ts == null && cf == null) return _behavioralFeatures;
+
+    final list = <Feature>[];
+    if (fb != null) {
+      list.add(
+        Feature(
+          title: "Founder Behavioral Fingerprint",
+          insights: [
+            fb['summary'],
+            ...List<String>.from(fb['key_findings'] ?? []),
+          ],
+          icon: Icons.fingerprint,
+          highlight: true,
+        ),
+      );
+    }
+    if (ts != null) {
+      list.add(
+        Feature(
+          title: "Founder Truth Signature",
+          insights: [
+            ts['summary'],
+            ...List<String>.from(ts['key_findings'] ?? []),
+          ],
+          icon: Icons.track_changes,
+        ),
+      );
+    }
+    if (cf != null) {
+      list.add(
+        Feature(
+          title: "Cultural Fit & Vision Alignment",
+          insights: [
+            cf['summary'],
+            ...List<String>.from(cf['key_findings'] ?? []),
+          ],
+          icon: Icons.handshake,
+        ),
+      );
+    }
+    return list.isNotEmpty ? list : _behavioralFeatures;
+  }
+
+  List<Feature> _mapStressFeatures(Map<String, dynamic> json) {
+    final sist = List<Map<String, dynamic>>.from(
+      json['synthetic_investor_stress_test'] ?? [],
+    );
+    final counter = List<String>.from(
+      json['counterfactual_explanations'] ?? [],
+    );
+
+    if (sist.isEmpty && counter.isEmpty) return _stressFeatures;
+
+    final list = <Feature>[];
+    if (sist.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Synthetic Investor Stress Test (SIST)",
+          insights:
+              sist.map((s) {
+                return "${s['scenario']} — Impact: ${s['impact']}\nMitigation: ${s['mitigation']}";
+              }).toList(),
+          icon: Icons.trending_down,
+          highlight: true,
+        ),
+      );
+    }
+
+    if (counter.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Counterfactual Explanations",
+          insights: counter,
+          icon: Icons.sync_alt,
+        ),
+      );
+    }
+    return list.isNotEmpty ? list : _stressFeatures;
+  }
+
+  List<Feature> _mapMarketFeatures(Map<String, dynamic> json) {
+    final radar = List<Map<String, dynamic>>.from(
+      json['market_sentiment_radar'] ?? [],
+    );
+    final peers = List<String>.from(json['peer_shock_detector'] ?? []);
+    final invisible = List<String>.from(json['invisible_signals'] ?? []);
+    final regulatory = List<String>.from(json['regulatory_radar'] ?? []);
+
+    if (radar.isEmpty && peers.isEmpty && invisible.isEmpty)
+      return _marketFeatures;
+
+    final list = <Feature>[];
+
+    if (radar.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Dynamic Market Sentiment Radar",
+          insights:
+              radar.map((r) {
+                return "${r['signal_type']} (${r['strength']}) — ${r['description']}\nAction: ${r['actionable_insight']}";
+              }).toList(),
+          icon: Icons.radar,
+          highlight: true,
+        ),
+      );
+    }
+
+    if (peers.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Peer Shock Detector",
+          insights: peers,
+          icon: Icons.groups,
+        ),
+      );
+    }
+
+    if (invisible.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Invisible Signals Scanner",
+          insights: invisible,
+          icon: Icons.bolt,
+        ),
+      );
+    }
+
+    if (regulatory.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Regulatory & Market Radar",
+          insights: regulatory,
+          icon: Icons.gavel,
+        ),
+      );
+    }
+
+    return list.isNotEmpty ? list : _marketFeatures;
+  }
+
+  List<Feature> _mapDecisionFeatures(Map<String, dynamic> json) {
+    final termSheet = List<String>.from(json['auto_term_sheet_bullets'] ?? []);
+    final redTeam = List<String>.from(json['red_team_analysis'] ?? []);
+    final responses = Map<String, dynamic>.from(
+      json['founder_response_simulation'] ?? {},
+    );
+
+    if (termSheet.isEmpty && redTeam.isEmpty && responses.isEmpty)
+      return _decisionFeatures;
+
+    final list = <Feature>[];
+    if (termSheet.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Auto-Term Sheet Assistant",
+          insights: termSheet,
+          icon: Icons.article,
+        ),
+      );
+    }
+
+    if (redTeam.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "One-click Red Team",
+          insights: redTeam,
+          icon: Icons.warning_amber,
+          highlight: true,
+        ),
+      );
+    }
+
+    if (responses.isNotEmpty) {
+      list.add(
+        Feature(
+          title: "Founder Response Simulator",
+          insights:
+              responses.entries
+                  .map((e) => "${e.key.toUpperCase()}:\n${e.value}")
+                  .toList(),
+          icon: Icons.smart_toy,
+        ),
+      );
+    }
+    return list.isNotEmpty ? list : _decisionFeatures;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // --- UI ---
   Widget _buildTabBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -55,7 +609,6 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
           Tab(icon: Icon(Icons.analytics), text: "  Behavioral Intelligence  "),
           Tab(
             icon: Icon(Icons.show_chart_rounded),
-            // reduce the font size slightly to fit longer text
             text: "  Stress Testing & KPIs  ",
           ),
           Tab(
@@ -72,23 +625,17 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (error != null) {
+      return Scaffold(
+        body: Center(child: Text("Error loading AI Insights:\n$error")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kLightBg,
       body: SafeArea(
@@ -125,9 +672,9 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
                               ],
                               stops: [0, _controller.value, 1],
                             ).createShader(bounds),
-                        child: Text(
+                        child: const Text(
                           "AI Insights",
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 32,
@@ -147,21 +694,18 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
                 },
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: 20),
               child: _buildTabBar(),
             ),
-
-            // --- Tab Contents ---
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [
-                  _Section(features: _behavioralFeatures),
-                  _Section(features: _stressFeatures),
-                  _Section(features: _marketFeatures),
-                  _Section(features: _decisionFeatures),
+                children: [
+                  _Section(features: behavioralFeatures),
+                  _Section(features: stressFeatures),
+                  _Section(features: marketFeatures),
+                  _Section(features: decisionFeatures),
                 ],
               ),
             ),
@@ -172,7 +716,7 @@ class _AiInsightsDashboardState extends State<AiInsightsDashboard>
   }
 }
 
-// --- Section + Feature Tiles ---
+// ---------------- Existing UI Components (unchanged) ----------------
 class _Section extends StatelessWidget {
   final List<Feature> features;
   const _Section({required this.features});
@@ -211,11 +755,7 @@ class _FeatureTileState extends State<FeatureTile> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: f.highlight ? 12 : 6,
-            // offset: const Offset(0, f.highlight ? 6 : 3),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: f.highlight ? 12 : 6),
         ],
       ),
       child: InkWell(
@@ -226,7 +766,6 @@ class _FeatureTileState extends State<FeatureTile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon + title
               Row(
                 children: [
                   Container(
@@ -293,24 +832,38 @@ class _FeatureTileState extends State<FeatureTile> {
   }
 }
 
-// ---------------- Features ----------------
-
 class Feature {
   final String title;
   final List<String> insights;
   final IconData icon;
   final bool highlight;
-
   const Feature({
     required this.title,
     required this.insights,
     required this.icon,
     this.highlight = false,
   });
-
-  // Helper to get a random insight each time screen loads
   String get insight => (List.of(insights)..shuffle()).first;
 }
+
+// ---------------- Features ----------------
+
+// class Feature {
+//   final String title;
+//   final List<String> insights;
+//   final IconData icon;
+//   final bool highlight;
+
+//   const Feature({
+//     required this.title,
+//     required this.insights,
+//     required this.icon,
+//     this.highlight = false,
+//   });
+
+//   // Helper to get a random insight each time screen loads
+//   String get insight => (List.of(insights)..shuffle()).first;
+// }
 
 const _behavioralFeatures = [
   Feature(

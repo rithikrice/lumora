@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..core.security import verify_api_key
 from ..core.logging import get_logger
-from ..services.database import DatabaseService
+from ..services.database import get_database_service
 from ..services.generator import GeminiGenerator
 from ..api.analyze import analyze_startup
 from ..models.dto import AnalyzeRequest, PersonaWeights
@@ -89,28 +89,43 @@ async def get_dashboard_data(
     ALL DATA comes from questionnaire responses and real analysis.
     """
     try:
-        db = DatabaseService()
+        db = get_database_service()
         
         # Get questionnaire data from database (not async)
         startup_data = db.get_startup(startup_id)
         if not startup_data:
             raise HTTPException(404, f"Startup {startup_id} not found. Please complete questionnaire first.")
         
-        # Extract questionnaire responses
+        # Extract questionnaire responses and profile
         responses = startup_data.get("questionnaire_responses", {})
+        profile = startup_data.get("profile", {})
+        profile_metrics = profile.get("metrics", {})
+        latest_analysis = startup_data.get("latest_analysis", {})
+        ai_kpis = latest_analysis.get("kpis", {}) if isinstance(latest_analysis, dict) else {}
         
-        # Build company profile from questionnaire
+        # Helper to get metric with fallback
+        def get_metric(q_key, p_key=None, ai_key=None, default=0):
+            val = responses.get(q_key)
+            if val is not None:
+                return val
+            if p_key and profile_metrics.get(p_key) is not None:
+                return profile_metrics.get(p_key)
+            if ai_key and ai_kpis.get(ai_key) is not None:
+                return ai_kpis.get(ai_key)
+            return default
+        
+        # Build company profile with smart fallbacks
         company_profile = {
-            "name": responses.get("company_name", "Unknown"),
+            "name": profile.get("company_name") or responses.get("company_name", "Unknown"),
             "description": responses.get("company_description", ""),
-            "founded": responses.get("founding_year", 2020),
-            "headquarters": responses.get("headquarters", "US"),
-            "industry": responses.get("industry", "Technology"),
-            "stage": responses.get("funding_stage", "Seed"),
-            "revenue": f"${responses.get('arr', 0)/1000000:.1f}M ARR",
+            "founded": profile.get("founded_year") or responses.get("founding_year", 2020),
+            "headquarters": profile.get("location") or responses.get("headquarters", "US"),
+            "industry": profile.get("sector") or responses.get("industry", "Technology"),
+            "stage": profile.get("stage") or responses.get("funding_stage", "Seed"),
+            "revenue": f"${get_metric('arr', 'arr', 'arr', 0)/1000000:.1f}M ARR",
             "funding_raised": f"${responses.get('total_raised', 0)/1000000:.1f}M",
-            "runway": f"{responses.get('runway', 18)} months",
-            "team_size": responses.get("team_size", 10),
+            "runway": f"{get_metric('runway', 'runway_months', 'runway_months', 18)} months",
+            "team_size": responses.get("team_size") or len(profile.get("team", [])) or 10,
             "business_model": responses.get("business_model", "B2B SaaS")
         }
         
@@ -265,7 +280,7 @@ async def get_portfolio(
     Returns REAL startups from database, not mock data.
     """
     try:
-        db = DatabaseService()
+        db = get_database_service()
         
         # Get all startups from database
         all_startups = db.list_startups(limit=10, offset=0)  # Default pagination
@@ -314,7 +329,7 @@ async def compare_startups(
         if len(request.startup_ids) < 1:
             raise HTTPException(400, "Need at least 1 startup to compare")
         
-        db = DatabaseService()
+        db = get_database_service()
         
         comparison_data = {}
         risk_counts = {}
@@ -327,19 +342,34 @@ async def compare_startups(
                 continue
                 
             responses = startup_data.get("questionnaire_responses", {})
+            profile = startup_data.get("profile", {})
+            profile_metrics = profile.get("metrics", {})
+            latest_analysis = startup_data.get("latest_analysis", {})
+            ai_kpis = latest_analysis.get("kpis", {}) if isinstance(latest_analysis, dict) else {}
             
-            # Build comparison metrics
+            # Helper to get metric with fallback precedence: questionnaire -> profile -> ai_kpis -> default
+            def get_metric(q_key, p_key=None, ai_key=None, default=0):
+                val = responses.get(q_key)
+                if val is not None:
+                    return val
+                if p_key and profile_metrics.get(p_key) is not None:
+                    return profile_metrics.get(p_key)
+                if ai_key and ai_kpis.get(ai_key) is not None:
+                    return ai_kpis.get(ai_key)
+                return default
+            
+            # Build comparison metrics with smart fallbacks
             comparison_data[startup_id] = {
-                "name": responses.get("company_name", startup_id),
-                "stage": responses.get("funding_stage", "Seed"),
-                "score": startup_data.get("analysis_score", 70),
-                "arr": responses.get("arr", 0),
-                "growth": responses.get("growth_rate", 0),
-                "team_size": responses.get("team_size", 0),
-                "burn_rate": responses.get("burn_rate", 0),
-                "runway": responses.get("runway", 18),
-                "customers": responses.get("total_customers", 0),
-                "churn": responses.get("churn_rate", 5)
+                "name": profile.get("company_name") or responses.get("company_name", startup_id),
+                "stage": profile.get("stage") or responses.get("funding_stage", "Seed"),
+                "score": startup_data.get("latest_score") or startup_data.get("analysis_score", 70),
+                "arr": get_metric("arr", "arr", "arr", 0),
+                "growth": get_metric("growth_rate", "growth", "growth_rate", 0),
+                "team_size": responses.get("team_size") or len(profile.get("team", [])) or 0,
+                "burn_rate": get_metric("burn_rate", None, "burn_rate", 0),
+                "runway": get_metric("runway", "runway_months", "runway_months", 18),
+                "customers": responses.get("total_customers") or profile.get("traction", {}).get("users", 0),
+                "churn": get_metric("churn_rate", "churn", None, 5)
             }
             
             scores.append({
@@ -409,7 +439,7 @@ async def simulate_growth(
     Simulate growth scenarios based on real metrics.
     """
     try:
-        db = DatabaseService()
+        db = get_database_service()
         startup_data = db.get_startup(startup_id)
         
         if not startup_data:
@@ -479,7 +509,7 @@ async def get_regulatory_radar(
         geography = None
         
         if startup_id:
-            db = DatabaseService()
+            db = get_database_service()
             startup_data = db.get_startup(startup_id)
             if startup_data:
                 responses = startup_data.get("questionnaire_responses", {})
@@ -547,7 +577,7 @@ async def get_startup_directory(
     Returns all startups from the database with real data.
     """
     try:
-        db = DatabaseService()
+        db = get_database_service()
         all_startups = db.list_startups()
         
         # Filter and format startups

@@ -26,6 +26,7 @@ class ExportFormat(str, Enum):
     GDOC = "gdoc"
     PDF = "pdf"
     JSON = "json"
+    HTML = "html"
 
 
 class Chunk(BaseModel):

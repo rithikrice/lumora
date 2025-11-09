@@ -26,56 +26,57 @@ class Founder {
 
 class StartupFormData {
   // Company Overview
-  String companyName = '';
-  String foundingYear = '';
+  String companyName = 'Finion';
+  String foundingYear = '2023';
   String industry = 'SaaS';
   String businessModel = 'B2B SaaS';
-  String companyDescription = '';
-  String headquarters = '';
-  String targetMarkets = '';
+  String companyDescription =
+      'A cutting-edge fintech startup revolutionizing payments.';
+  String headquarters = 'Bengaluru, India';
+  String targetMarkets = 'India, Southeast Asia';
 
   // Product & Market
-  String productStage = 'Idea';
-  String competitiveAdvantage = '';
-  String tam = '';
+  String productStage = 'Launched';
+  String competitiveAdvantage = 'We Rock AI-driven fraud detection.';
+  String tam = '200000';
 
   // Financial Metrics
-  String arr = '';
-  String mrr = '';
-  String growthRate = '';
-  String grossMargin = '';
-  String burnRate = '';
-  String runway = '';
+  String arr = '23545';
+  String mrr = '342';
+  String growthRate = '12';
+  String grossMargin = '12';
+  String burnRate = '34';
+  String runway = '55';
 
   // Customer Metrics
-  String totalCustomers = '';
-  String fortune500Customers = '';
-  String churnRate = '';
-  String logoRetention = '';
-  String nrr = '';
-  String cac = '';
-  String ltv = '';
-  String customerConcentration = '';
+  String totalCustomers = '43235667';
+  String fortune500Customers = '1234';
+  String churnRate = '34';
+  String logoRetention = '45';
+  String nrr = '56';
+  String cac = '56';
+  String ltv = '87';
+  String customerConcentration = '9';
 
   // Team & Founders
   String teamSize = '';
   List<Founder> founders = [];
-  String teamFromFAANG = '';
-  String technicalTeam = '';
+  String teamFromFAANG = '1312';
+  String technicalTeam = '21';
 
   // Funding & Investment
   String fundingStage = 'Pre-seed';
-  String totalRaised = '';
-  String lastValuation = '';
-  String currentAsk = '';
-  String targetValuation = '';
-  String useOfFunds = '';
+  String totalRaised = '12354';
+  String lastValuation = '4568';
+  String currentAsk = '76865';
+  String targetValuation = '2346';
+  String useOfFunds = '321';
   String exitStrategy = '';
   String investorNames = '';
 
   // Additional Context
-  String pitchDeckUrl = '';
-  String financialModelUrl = '';
+  String pitchDeckUrl = 'https://example.com/pitchdeck.pdf';
+  String financialModelUrl = 'https://example.com/financialmodel.xlsx';
 
   // Video URL
   String videoUrl = '';
@@ -83,7 +84,8 @@ class StartupFormData {
 
 // ===== Multi-step Form =====
 class StartupRegistrationForm extends StatefulWidget {
-  const StartupRegistrationForm({super.key});
+  final StartupFormData? initialFormData;
+  const StartupRegistrationForm({super.key, this.initialFormData});
 
   @override
   State<StartupRegistrationForm> createState() =>
@@ -92,8 +94,14 @@ class StartupRegistrationForm extends StatefulWidget {
 
 class _StartupRegistrationFormState extends State<StartupRegistrationForm> {
   int currentPage = 0;
-  final StartupFormData formData = StartupFormData();
+  late StartupFormData formData;
   final PageController pageController = PageController();
+
+  @override
+  void initState() {
+    super.initState();
+    formData = widget.initialFormData ?? StartupFormData();
+  }
 
   void nextPage() {
     if (!_validatePage(currentPage)) {
@@ -279,7 +287,7 @@ class _StartupRegistrationFormState extends State<StartupRegistrationForm> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(4.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -763,10 +771,42 @@ class _StartupRegistrationFormState extends State<StartupRegistrationForm> {
           ]),
           const SizedBox(height: 24),
 
-          SubmitButtonWithAnimation(
-            formData: formData,
-            videoBytes: pickedVideoBytes,
+          // SubmissionAnimationPage(
+          //   formData: formData,
+          //   videoBytes: pickedVideoBytes,
+          // ),
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => SubmissionAnimationPage(
+                          formData: formData,
+                          videoBytes: pickedVideoBytes,
+                        ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kAccent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+              child: const Text(
+                'Submit Startup Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
+
           const SizedBox(height: 24),
         ],
       ),
@@ -819,72 +859,72 @@ class _StartupRegistrationFormState extends State<StartupRegistrationForm> {
   }
 }
 
-// ===== Submit Button With Backend Integration =====
-class SubmitButtonWithAnimation extends StatefulWidget {
-  final StartupFormData formData;
-  final Uint8List? videoBytes;
+// // ===== Submit Button With Backend Integration =====
+// class SubmitButtonWithAnimation extends StatefulWidget {
+//   final StartupFormData formData;
+//   final Uint8List? videoBytes;
 
-  const SubmitButtonWithAnimation({
-    super.key,
-    required this.formData,
-    required this.videoBytes,
-  });
+//   const SubmitButtonWithAnimation({
+//     super.key,
+//     required this.formData,
+//     required this.videoBytes,
+//   });
 
-  @override
-  State<SubmitButtonWithAnimation> createState() =>
-      _SubmitButtonWithAnimationState();
-}
+//   @override
+//   State<SubmitButtonWithAnimation> createState() =>
+//       _SubmitButtonWithAnimationState();
+// }
 
-class _SubmitButtonWithAnimationState extends State<SubmitButtonWithAnimation> {
-  bool loading = false;
+// class _SubmitButtonWithAnimationState extends State<SubmitButtonWithAnimation> {
+//   bool loading = false;
 
-  Future<void> _openAnimationAndSubmit() async {
-    setState(() => loading = true);
+//   Future<void> _openAnimationAndSubmit() async {
+//     setState(() => loading = true);
 
-    try {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => SubmissionAnimationPage(
-                formData: widget.formData,
-                videoBytes: widget.videoBytes,
-              ),
-        ),
-      );
-    } finally {
-      setState(() => loading = false);
-    }
-  }
+//     try {
+//       Navigator.push(
+//         context,
+//         MaterialPageRoute(
+//           builder:
+//               (_) => SubmissionAnimationPage(
+//                 formData: widget.formData,
+//                 videoBytes: widget.videoBytes,
+//               ),
+//         ),
+//       );
+//     } finally {
+//       setState(() => loading = false);
+//     }
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        onPressed: loading ? null : _openAnimationAndSubmit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kAccent,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        ),
-        child:
-            loading
-                ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : const Text(
-                  'Submit Profile',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Center(
+//       child: ElevatedButton(
+//         onPressed: loading ? null : _openAnimationAndSubmit,
+//         style: ElevatedButton.styleFrom(
+//           backgroundColor: kAccent,
+//           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+//         ),
+//         child:
+//             loading
+//                 ? const SizedBox(
+//                   width: 20,
+//                   height: 20,
+//                   child: CircularProgressIndicator(
+//                     color: Colors.white,
+//                     strokeWidth: 2,
+//                   ),
+//                 )
+//                 : const Text(
+//                   'Submit Profile',
+//                   style: TextStyle(
+//                     fontSize: 16,
+//                     fontWeight: FontWeight.bold,
+//                     color: Colors.white,
+//                   ),
+//                 ),
+//       ),
+//     );
+//   }
+// }

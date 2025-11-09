@@ -206,14 +206,42 @@ class GoogleDocsExporter:
         video_analysis: Optional[Dict[str, Any]]
     ) -> Dict[str, str]:
         """Create comprehensive local HTML report with all data."""
-        # Build HTML with all sections
-        html = self._create_local_report(analysis, include_appendix)
+        # First create the base report and get the HTML content by reading the file
+        base_report = self._create_local_report(analysis, include_appendix)
+        
+        # Read the HTML content from the created file
+        if base_report.get("document_url", "").startswith("file://"):
+            filepath = base_report["document_url"].replace("file://", "")
+            try:
+                with open(filepath, "r") as f:
+                    html = f.read()
+            except Exception as e:
+                logger.error(f"Failed to read base report: {e}")
+                # Generate minimal HTML as fallback
+                html = f"""<!DOCTYPE html>
+                <html>
+                <head><title>Analysis - {analysis.startup_id}</title></head>
+                <body>
+                <h1>Analysis for {analysis.startup_id}</h1>
+                <p>Score: {analysis.score:.2%}</p>
+                <p>Recommendation: {analysis.recommendation.value}</p>
+                </body>
+                </html>"""
+        else:
+            # Fallback HTML
+            html = f"<html><body><h1>Analysis for {analysis.startup_id}</h1></body></html>"
         
         # Add questionnaire data section
         if questionnaire_data:
-            questionnaire_html = "<h2>📋 Questionnaire Data</h2><table>"
+            questionnaire_html = "<h2>📋 Document Data</h2><table style='border-collapse: collapse; width: 100%; margin: 20px 0;'>"
             for key, value in questionnaire_data.items():
-                questionnaire_html += f"<tr><td><strong>{key.replace('_', ' ').title()}</strong></td><td>{value}</td></tr>"
+                # Handle complex values safely
+                if isinstance(value, (dict, list)):
+                    value_str = str(value)[:200] + "..." if len(str(value)) > 200 else str(value)
+                else:
+                    value_str = str(value)
+                key_str = str(key).replace('_', ' ').title()
+                questionnaire_html += f"<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>{key_str}</strong></td><td style='padding: 8px; border: 1px solid #ddd;'>{value_str}</td></tr>"
             questionnaire_html += "</table>"
             html = html.replace("</body>", f"{questionnaire_html}</body>")
         
@@ -221,19 +249,20 @@ class GoogleDocsExporter:
         if video_analysis:
             video_html = "<h2>🎥 Video Analysis</h2>"
             if video_analysis.get("transcript"):
-                video_html += f"<h3>Transcript</h3><p>{video_analysis['transcript']}</p>"
+                transcript_preview = video_analysis['transcript'][:500] + "..." if len(video_analysis['transcript']) > 500 else video_analysis['transcript']
+                video_html += f"<h3>Transcript</h3><p>{transcript_preview}</p>"
             if video_analysis.get("analysis"):
                 va = video_analysis["analysis"]
                 if isinstance(va, dict) and "founder_analysis" in va:
                     founder = va["founder_analysis"]
-                    video_html += "<h3>Founder Assessment</h3><table>"
+                    video_html += "<h3>Founder Assessment</h3><table style='border-collapse: collapse; width: 100%; margin: 20px 0;'>"
                     for key, value in founder.items():
                         if isinstance(value, (int, float)):
-                            video_html += f"<tr><td><strong>{key.replace('_', ' ').title()}</strong></td><td>{value*100:.0f}%</td></tr>"
+                            video_html += f"<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>{key.replace('_', ' ').title()}</strong></td><td style='padding: 8px; border: 1px solid #ddd;'>{value*100:.0f}%</td></tr>"
                     video_html += "</table>"
             html = html.replace("</body>", f"{video_html}</body>")
         
-        # Save report
+        # Save comprehensive report
         import os
         from datetime import datetime
         
@@ -241,8 +270,10 @@ class GoogleDocsExporter:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"data/reports/{analysis.startup_id}_{timestamp}_comprehensive_report.html"
         
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(html)
+        
+        logger.info(f"Created comprehensive report: {filename}")
         
         return {
             "document_url": f"file://{os.path.abspath(filename)}",

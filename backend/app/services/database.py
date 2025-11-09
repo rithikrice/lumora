@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 from dataclasses import dataclass
 import json
-from sqlalchemy import create_engine, Column, String, Float, JSON, DateTime, Text, Integer
+from sqlalchemy import create_engine, Column, String, Float, JSON, DateTime, Text, Integer, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
@@ -24,11 +24,15 @@ class StartupRecord(Base):
     
     startup_id = Column(String, primary_key=True)
     name = Column(String)
+    name_lower = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Questionnaire data
     questionnaire_data = Column(JSON)  # All questionnaire responses
+    
+    # Canonical profile schema
+    profile = Column(JSON)  # Structured profile data
     
     # Analysis results
     score = Column(Float, default=70)  # Investment score
@@ -45,7 +49,7 @@ class StartupRecord(Base):
     runway_months = Column(Integer)
     
     # Documents
-    documents = Column(JSON)  # List of document IDs
+    documents = Column(JSON)  # List of document metadata
     chunks_count = Column(Integer)
     
     # Q&A collected data
@@ -148,17 +152,52 @@ class DatabaseService:
                 # Try to get from StartupRecord table
                 record = session.query(StartupRecord).filter_by(startup_id=startup_id).first()
                 if record:
+                    # Prefer questionnaire_responses, fallback to questionnaire_data
+                    responses = record.questionnaire_responses or record.questionnaire_data or {}
+                    
+                    # If aggregated responses are empty, try loading from individual records
+                    if not responses or (isinstance(responses, dict) and len(responses) == 0):
+                        logger.info(f"Aggregated responses empty for {startup_id}, loading from individual records")
+                        individual_responses = session.query(QuestionnaireResponse).filter_by(
+                            startup_id=startup_id
+                        ).all()
+                        
+                        if individual_responses:
+                            # Aggregate into dict
+                            responses = {r.question_id: r.answer for r in individual_responses}
+                            logger.info(f"Loaded {len(responses)} responses from individual records")
+                    
                     return {
                         "startup_id": record.startup_id,
-                        "questionnaire_responses": record.questionnaire_data or {},
+                        "name": record.name,
+                        "name_lower": record.name_lower,
+                        "profile": record.profile or {},
+                        "questionnaire_responses": responses,
+                        "documents": record.documents or [],
                         "analysis_score": record.score or 70,
+                        "latest_score": record.latest_score,
+                        "latest_recommendation": record.latest_recommendation,
+                        "latest_analysis": record.latest_analysis,
                         "top_risks": record.risks or [],
+                        "created_at": record.created_at.isoformat() if record.created_at else None,
                         "updated_at": record.updated_at.isoformat() if record.updated_at else None
                     }
                 return None
         except Exception as e:
             logger.error(f"Failed to get startup: {e}")
             return None
+    
+    def find_startup_id(self, company_name: str) -> Optional[str]:
+        """Case-insensitive match on StartupRecord.name."""
+        if not company_name:
+            return None
+        with self.get_session() as session:
+            rec = (
+                session.query(StartupRecord)
+                .filter(func.lower(StartupRecord.name) == company_name.strip().lower())
+                .first()
+            )
+            return rec.startup_id if rec else None
     
     def list_startups(self, limit: int = 10, offset: int = 0) -> List[Dict[str, Any]]:
         """List all startups."""
@@ -235,10 +274,13 @@ class DatabaseService:
                     startup_id=startup_id
                 ).first()
                 
+                company_name = responses.get('company_name', startup_id)
+                
                 if not record:
                     record = StartupRecord(
                         startup_id=startup_id,
-                        name=responses.get('company_name', startup_id),  # Extract company name
+                        name=company_name,
+                        name_lower=str(company_name).strip().lower(),
                         questionnaire_data=responses,
                         questionnaire_responses=responses,  # Save to both fields for compatibility
                         score=70,  # Default score
@@ -251,7 +293,8 @@ class DatabaseService:
                     )
                     session.add(record)
                 else:
-                    record.name = responses.get('company_name', record.name or startup_id)
+                    record.name = company_name or record.name or startup_id
+                    record.name_lower = str(company_name or record.name or startup_id).strip().lower()
                     record.questionnaire_data = responses
                     record.questionnaire_responses = responses  # Save to both fields for compatibility
                     record.updated_at = datetime.utcnow()
@@ -263,6 +306,13 @@ class DatabaseService:
                     record.runway_months = int(responses.get('runway', 0)) if responses.get('runway') else record.runway_months
                 
                 session.commit()
+                
+                # Write-through into profile
+                from .normalizer import normalize_from_questionnaire
+                upserts = normalize_from_questionnaire(responses)
+                upserts["__source"] = "questionnaire"
+                self.save_structured_profile(startup_id, upserts)
+                
                 return True
                 
             except Exception as e:
@@ -346,6 +396,109 @@ class DatabaseService:
                 }
                 for r in responses
             ]
+    
+    def save_structured_profile(self, startup_id: str, incoming: dict, source: str = "pitch_deck"):
+        """Save structured profile data with merge support - SSoT write-through.
+        
+        This makes profile the single source of truth, while also preserving
+        raw source data in questionnaire_responses or other buckets.
+        
+        Args:
+            startup_id: Startup identifier
+            incoming: Profile data to merge
+            source: Source of the data ("pitch_deck", "checklist", "questionnaire")
+            
+        Returns:
+            Merged profile dictionary
+        """
+        with self.get_session() as session:
+            try:
+                rec = session.query(StartupRecord).filter_by(startup_id=startup_id).first()
+                if not rec:
+                    rec = StartupRecord(startup_id=startup_id)
+                    session.add(rec)
+                
+                # Get existing profile (SSoT)
+                existing = rec.profile or {}
+                
+                # Merge with precedence: questionnaire > checklist > pitch_deck
+                from .normalizer import merge_profile
+                merged = merge_profile(existing, incoming, source)
+                
+                # Write SSoT
+                rec.profile = merged
+                rec.name = merged.get("company_name", rec.name or startup_id)
+                rec.name_lower = (rec.name or startup_id).strip().lower()
+                
+                # Keep raw sources for debug/backfill
+                # Update questionnaire_responses for backward compatibility
+                if source == "questionnaire":
+                    if rec.questionnaire_responses:
+                        existing_responses = rec.questionnaire_responses or {}
+                        existing_responses.update(incoming)
+                        rec.questionnaire_responses = existing_responses
+                    else:
+                        rec.questionnaire_responses = incoming
+                
+                # Preserve raw document data (pages, full_text, etc.) when merging structured extraction
+                if source in ["pitch_deck", "checklist"]:
+                    if not rec.questionnaire_responses:
+                        rec.questionnaire_responses = {}
+                    
+                    # Get existing bucket (contains raw pages, full_text, document_id, etc.)
+                    existing_bucket = rec.questionnaire_responses.get(source, {})
+                    
+                    # Preserve raw document fields
+                    raw_fields = ["pages", "full_text", "document_id", "filename", "storage_path", 
+                                  "public_url", "total_pages", "images_count", "doc_type"]
+                    
+                    # Merge: keep raw data, add structured extraction under 'extracted_data'
+                    if isinstance(existing_bucket, dict):
+                        # Preserve all raw document fields
+                        for field in raw_fields:
+                            if field in existing_bucket:
+                                incoming[field] = existing_bucket[field]
+                        
+                        # Store structured extraction separately if we have existing raw data
+                        if any(field in existing_bucket for field in raw_fields):
+                            # We have raw doc data - keep it and add structured under key
+                            incoming["structured_profile"] = {k: v for k, v in incoming.items() 
+                                                             if k not in raw_fields and not k.startswith("__")}
+                    
+                    rec.questionnaire_responses[source] = incoming
+                
+                session.commit()
+                logger.info(f"Saved structured profile for {startup_id} from {source}")
+                return merged
+                
+            except Exception as e:
+                logger.error(f"save_structured_profile failed: {e}")
+                session.rollback()
+                raise
+    
+    def add_document_index(self, startup_id: str, doc: dict):
+        """Add a document to the documents index.
+        
+        Args:
+            startup_id: Startup identifier
+            doc: Document metadata dictionary
+        """
+        with self.get_session() as session:
+            try:
+                rec = session.query(StartupRecord).filter_by(startup_id=startup_id).first()
+                if not rec:
+                    rec = StartupRecord(startup_id=startup_id)
+                    session.add(rec)
+                docs = rec.documents or []
+                # Prevent duplicates by document_id
+                if not any(d.get("document_id") == doc.get("document_id") for d in docs):
+                    docs.append(doc)
+                rec.documents = docs
+                session.commit()
+                logger.info(f"Added document index for {startup_id}: {doc.get('document_id')}")
+            except Exception as e:
+                logger.error(f"add_document_index failed: {e}")
+                session.rollback()
 
 
 # Neo4j Alternative Implementation
@@ -447,3 +600,24 @@ class Neo4jService:
                 {"id": record["id"], "name": record["name"], "similarity": record["common_metrics"]}
                 for record in result
             ]
+
+
+def get_database_service():
+    """Get the appropriate database service based on configuration.
+    
+    Returns:
+        DatabaseService or FirestoreService instance
+    """
+    settings = get_settings()
+    
+    if settings.USE_FIRESTORE:
+        try:
+            from .firestore_db import FirestoreService
+            logger.info("Using Firestore for persistence")
+            return FirestoreService()
+        except ImportError as e:
+            logger.warning(f"Firestore not available, falling back to SQLite: {e}")
+            return DatabaseService()
+    
+    logger.info("Using SQLite for persistence")
+    return DatabaseService()

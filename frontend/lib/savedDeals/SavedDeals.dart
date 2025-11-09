@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lumora/config/ApiConfig.dart';
-import 'Comparison.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-const Color bgPrimary = Color(0xFFF2F4F7);
-const Color cardColor = Colors.white;
-const Color accent = Color(0xFFFF6B2C);
-const Color textPrimary = Color(0xFF1C1C1E);
-const Color textSecondary = Color(0xFF6C6C80);
-const double cardRadius = 16.0;
+import 'package:http/http.dart' as http;
+import 'Comparison.dart';
+import 'package:lumora/config/ApiConfig.dart';
 
 class Startup {
   final String id;
@@ -71,6 +64,15 @@ class RiskTag {
   }
 }
 
+const Color kAccent = Color(0xFFFF6B2C);
+const Color kAccentBlue = Color.fromARGB(255, 62, 44, 255);
+const Color kBackground = Color(0xFFFDFBF9);
+const Color kCard = Colors.white;
+const Color kTextPrimary = Color(0xFF0D1724);
+const Color kTextSecondary = Color(0xFF6B7280);
+
+const double kCardRadius = 20.0;
+
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
   @override
@@ -82,6 +84,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
   Set<String> selectedIds = {};
   String? _error;
   bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -144,224 +147,204 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgPrimary,
-      appBar: AppBar(
-        backgroundColor: accent,
-        elevation: 0,
-        title: const Text(
-          'Portfolio & Saved Deals',
-          style: TextStyle(
-            color: bgPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-              ? Center(
-                child: Text(_error!, style: const TextStyle(color: Colors.red)),
-              )
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildTableHeader(),
-                    const SizedBox(height: 16),
-                    ..._allStartups.map((s) => _buildTableRow(s)).toList(),
-                  ],
-                ),
-              ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final selectedStartups =
-              _allStartups.where((s) => selectedIds.contains(s.id)).toList();
-          if (selectedStartups.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Select at least one startup to compare.'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            return;
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ComparisonPage(startups: selectedStartups),
-            ),
-          );
-        },
-        label: Text(
-          'Compare (${selectedIds.length})',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        icon: const Icon(Icons.compare_arrows),
-        backgroundColor: accent,
-        elevation: 6,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
-
-  Widget _buildTableHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(cardRadius),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF0E5), Color(0xFFFFE6CC)],
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFEDE0), Colors.white, Color(0xFFFFEDE0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: kAccent,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            'Portfolio & Saved Deals',
+            style: TextStyle(
+              color: kBackground,
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        body:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator(color: kAccent))
+                : _error != null
+                ? Center(
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
+                : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 20),
+                      ..._allStartups.map((s) => _buildRow(s)).toList(),
+                    ],
+                  ),
+                ),
+        floatingActionButton: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          child: FloatingActionButton.extended(
+            backgroundColor: selectedIds.isEmpty ? Colors.grey[400] : kAccent,
+            onPressed:
+                selectedIds.isEmpty
+                    ? null
+                    : () {
+                      final selectedStartups =
+                          _allStartups
+                              .where((s) => selectedIds.contains(s.id))
+                              .toList();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  ComparisonPage(startups: selectedStartups),
+                        ),
+                      );
+                    },
+            icon: const Icon(Icons.compare_arrows, color: Colors.white),
+            label: Text(
+              'Compare (${selectedIds.length})',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(kCardRadius),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: const [
           SizedBox(width: 36),
-          Expanded(flex: 3, child: Text('Startup', style: _headerStyle)),
+          Expanded(flex: 4, child: Text('Startup', style: _headerStyle)),
           Expanded(flex: 2, child: Text('Stage', style: _headerStyle)),
           Expanded(flex: 2, child: Text('Score', style: _headerStyle)),
-          Expanded(flex: 3, child: Text('Last Updated', style: _headerStyle)),
-          Expanded(flex: 3, child: Text('Risks', style: _headerStyle)),
         ],
       ),
     );
   }
 
-  Widget _buildTableRow(Startup s) {
+  Widget _buildRow(Startup s) {
     final isSelected = selectedIds.contains(s.id);
-    return GestureDetector(
-      onTap: () => _toggleSelection(s.id),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(cardRadius),
-          color: cardColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isSelected ? 0.15 : 0.08),
-              blurRadius: isSelected ? 12 : 6,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isSelected ? accent : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 36,
-              child: Checkbox(
-                value: isSelected,
-                onChanged: (_) => _toggleSelection(s.id),
-                activeColor: accent,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _toggleSelection(s.id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: kCard.withOpacity(0.95),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    isSelected
+                        ? kAccent.withOpacity(0.25)
+                        : Colors.black.withOpacity(0.06),
+                blurRadius: isSelected ? 6 : 2,
               ),
+            ],
+            border: Border.all(
+              color: isSelected ? kAccent.withOpacity(0.5) : Colors.transparent,
+              width: 2,
             ),
-            Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: accent.withOpacity(0.15),
-                    child: Text(
-                      s.name.isNotEmpty ? s.name[0] : "?",
-                      style: const TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.bold,
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 36,
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: (_) => _toggleSelection(s.id),
+                  activeColor: kAccent,
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: kAccent.withOpacity(0.15),
+                      child: Text(
+                        s.name.isNotEmpty ? s.name[0] : "?",
+                        style: const TextStyle(
+                          color: kAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    s.name,
-                    style: const TextStyle(
-                      color: textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        s.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: kTextPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                s.stage,
-                style: const TextStyle(color: textSecondary),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  s.stage,
+                  style: const TextStyle(color: kTextSecondary),
+                ),
               ),
-            ),
-            Expanded(flex: 2, child: _ScoreBar(score: s.score)),
-            Expanded(
-              flex: 3,
-              child: Text(
-                s.lastUpdated,
-                style: const TextStyle(color: textSecondary),
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Wrap(
-                spacing: 6,
-                children:
-                    s.risks
-                        .map(
-                          (r) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: r.color.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              r.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-              ),
-            ),
-          ],
+              Expanded(flex: 2, child: _AnimatedScoreBar(score: s.score)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ScoreBar extends StatelessWidget {
+class _AnimatedScoreBar extends StatelessWidget {
   final int score;
-  const _ScoreBar({required this.score});
+  const _AnimatedScoreBar({required this.score});
+
   @override
   Widget build(BuildContext context) {
-    Color barColor;
-    if (score > 75) {
-      barColor = Colors.greenAccent.shade400;
-    } else if (score > 50) {
-      barColor = Colors.orangeAccent.shade400;
-    } else {
-      barColor = Colors.redAccent.shade400;
-    }
+    final gradient = LinearGradient(
+      colors: [kAccentBlue, kAccent],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -370,7 +353,7 @@ class _ScoreBar extends StatelessWidget {
             Container(
               height: 14,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(7),
               ),
             ),
@@ -380,7 +363,7 @@ class _ScoreBar extends StatelessWidget {
               child: Container(
                 height: 14,
                 decoration: BoxDecoration(
-                  color: barColor,
+                  gradient: gradient,
                   borderRadius: BorderRadius.circular(7),
                 ),
               ),
@@ -391,9 +374,10 @@ class _ScoreBar extends StatelessWidget {
         Text(
           '$score',
           style: const TextStyle(
-            color: textPrimary,
+            color: kTextPrimary,
             fontSize: 12,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -402,7 +386,7 @@ class _ScoreBar extends StatelessWidget {
 }
 
 const _headerStyle = TextStyle(
-  color: textPrimary,
-  fontWeight: FontWeight.w700,
+  color: kTextPrimary,
+  fontWeight: FontWeight.w800,
   fontSize: 14,
 );

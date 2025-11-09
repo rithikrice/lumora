@@ -3,7 +3,7 @@ import 'package:lumora/aiInsights/AIInsights.dart';
 import 'package:lumora/homepage/components/TopNavBar.dart';
 import 'package:lumora/homepage/theme.dart';
 import 'package:lumora/startupProfile/ActivityTimeline.dart';
-import 'package:lumora/startupProfile/DashboardAPI.dart';
+import 'package:lumora/startupProfile/DashboardAPI.dart'; // contains StartupDetailsApi
 import 'package:lumora/startupProfile/ExecutiveSummary.dart';
 import 'package:lumora/startupProfile/FounderTeam.dart';
 import 'package:lumora/startupProfile/GrowthSimulation.dart';
@@ -26,21 +26,23 @@ class StartupProfilePage extends StatefulWidget {
 
 class _StartupProfilePageState extends State<StartupProfilePage> {
   String _activeSection = "Company Profile";
-  Dashboard? dashboard;
+  StartupDetails? startup;
   bool loading = true;
   String? error;
 
   @override
   void initState() {
     super.initState();
-    _loadDashboard();
+    _loadStartup();
   }
 
-  Future<void> _loadDashboard() async {
+  Future<void> _loadStartup() async {
     try {
-      final data = await DashboardApi.fetchDashboard(widget.startupId);
+      final data = await StartupDetailsApi.fetchStartupDetails(
+        widget.startupId,
+      );
       setState(() {
-        dashboard = data;
+        startup = data;
         loading = false;
       });
     } catch (e) {
@@ -56,42 +58,45 @@ class _StartupProfilePageState extends State<StartupProfilePage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (error != null) {
-      return Center(child: Text("Error loading dashboard:\n$error"));
+      return Center(child: Text("Error loading startup details:\n$error"));
     }
 
-    // Map backend data to ProfileHeader
+    final s = startup!; // shorthand
+
+    // ✅ Map backend data to ProfileHeader
     final profileData = {
-      'name': dashboard!.companyProfile.name,
-      'pitch': dashboard!.companyProfile.description,
+      'name': s.identity.name,
+      'pitch': s.business.solution,
       'meta':
-          "${dashboard!.companyProfile.industry} • ${dashboard!.companyProfile.stage} • ${dashboard!.companyProfile.headquarters}",
-      'founded': dashboard!.companyProfile.founded.toString(),
-      'revenue': dashboard!.companyProfile.revenue,
-      'funding': dashboard!.companyProfile.fundingRaised,
-      'runway': dashboard!.companyProfile.runway,
+          "${s.identity.sector} • ${s.identity.stage} • ${s.identity.location}",
+      'founded': s.identity.foundedYear,
+      'revenue': s.metrics.arr,
+      'funding': s.fundraising.raisedToDate,
+      'runway': s.metrics.runwayMonths,
+      'valuation': s.fundraising.valuation,
+      'website': s.identity.website,
     };
 
     switch (section) {
+      // ------------------ COMPANY PROFILE ------------------
       case "Company Profile":
         return SingleChildScrollView(
           child: Column(
             children: [
               ProfileHeader(data: profileData),
-              SizedBox(height: 24),
-              // const FounderTeam(),
+              const SizedBox(height: 24),
+
+              // Founding team
               FounderTeam(
                 data: {
                   'founders':
-                      dashboard!.foundingTeam
-                          .where(
-                            (f) => f.name != null && f.name!.isNotEmpty,
-                          ) // Filter only members with names
+                      s.founders
                           .map(
-                            (f) => {
-                              'name': f.name!, // We filtered nulls above
-                              'role': f.role ?? 'CEO',
+                            (name) => {
+                              'name': name,
+                              'role': 'Founder',
                               'initials':
-                                  f.name!
+                                  name
                                       .split(' ')
                                       .map((e) => e[0])
                                       .take(2)
@@ -101,31 +106,25 @@ class _StartupProfilePageState extends State<StartupProfilePage> {
                           )
                           .toList(),
                   'metrics': {
-                    'integrityScore':
-                        dashboard!.foundingTeam.any(
-                              (f) => f.integrityScore != null,
-                            )
-                            ? "${dashboard!.foundingTeam.firstWhere((f) => f.integrityScore != null).integrityScore!.toStringAsFixed(0)}%"
-                            : '87%',
-                    'culturalFit':
-                        dashboard!.foundingTeam.any(
-                              (f) => f.culturalFit != null,
-                            )
-                            ? dashboard!.foundingTeam
-                                .firstWhere((f) => f.culturalFit != null)
-                                .culturalFit!
-                            : 'High Alignment',
+                    'integrityScore': '87%',
+                    'culturalFit': 'High Alignment',
                   },
                 },
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
+
+              // Executive summary (AI)
               ExecutiveSummary(
                 data: {
-                  'bullets': dashboard!.executiveSummary,
+                  'bullets': [
+                    s.aiAnalysis.executiveSummary,
+                    "Recommendation: ${s.aiAnalysis.recommendation}",
+                    "Score: ${s.aiAnalysis.score.toStringAsFixed(0)} / 100",
+                  ],
                   'evidence': [
-                    "Analysis based on data",
-                    "Domain checks",
-                    "Market evidence",
+                    "AI insights generated from pitch deck & checklist",
+                    "Market & financial validation",
+                    "Regulatory and risk analysis",
                   ],
                 },
               ),
@@ -133,72 +132,150 @@ class _StartupProfilePageState extends State<StartupProfilePage> {
           ),
         );
 
+      // ------------------ INVESTMENT HIGHLIGHTS ------------------
       case "Investment Highlights":
         return SingleChildScrollView(
           child: Column(
             children: [
               InvestmentHighlightsPage(
                 data: {
-                  'currentAsk': dashboard!.investmentHighlights.currentAsk,
-                  'useOfFunds': dashboard!.investmentHighlights.useOfFunds,
-                  'exitStrategy': dashboard!.investmentHighlights.exitStrategy,
-                  'keyStrengths': dashboard!.investmentHighlights.keyStrengths,
+                  'currentAsk': s.fundraising.ask,
+                  'useOfFunds': s.fundraising.highlights.join("\n"),
+                  'exitStrategy': "Not specified",
+                  'keyStrengths': [
+                    "Valuation: ${s.fundraising.valuation}",
+                    "Raised: ${s.fundraising.raisedToDate}",
+                    "Recommendation: ${s.aiAnalysis.recommendation}",
+                  ],
                 },
               ),
+              const SizedBox(height: 24),
               RegulatoryRadar(
                 data: {
                   'alerts':
-                      dashboard!.marketRegulation.alerts
+                      s.aiAnalysis.risks
                           .map(
-                            (a) => {
-                              'region': a.region,
-                              'regulation': a.regulation,
-                              'severity': a.severity,
+                            (r) => {
+                              'region': r.type,
+                              'regulation': r.description,
+                              'severity': r.severity,
                             },
                           )
                           .toList(),
-                  'risk_score': dashboard!.marketRegulation.riskScore,
+                  'risk_score': s.aiAnalysis.score.toInt(),
                 },
               ),
             ],
           ),
         );
 
+      // ------------------ KPI BENCHMARKS ------------------
       case "KPI BenchMarks":
         return SingleChildScrollView(
           child: Column(
             children: [
               KpiBenchmarksPage(
                 data: {
-                  'kpis':
-                      dashboard!.kpis
-                          .map(
-                            (k) => {
-                              'title': k.title,
-                              'value': k.value,
-                              'note': k.note,
-                            },
-                          )
-                          .toList(),
-                  'alert': dashboard!.kpiAlert,
+                  'kpis': [
+                    {
+                      'title': 'ARR',
+                      'value': s.metrics.arr,
+                      'note': 'Annual Recurring Revenue',
+                    },
+                    {
+                      'title': 'Growth Rate',
+                      'value': s.metrics.growthRate,
+                      'note': 'YoY growth',
+                    },
+                    {
+                      'title': 'CAC',
+                      'value': s.metrics.cac,
+                      'note': 'Customer Acquisition Cost',
+                    },
+                    {
+                      'title': 'LTV',
+                      'value': s.metrics.ltv,
+                      'note': 'Lifetime Value',
+                    },
+                    {
+                      'title': 'CAC/LTV Ratio',
+                      'value': s.metrics.cacLtvRatio,
+                      'note': 'Efficiency',
+                    },
+                    {
+                      'title': 'Runway',
+                      'value': s.metrics.runwayMonths,
+                      'note': 'Months remaining',
+                    },
+                  ],
+                  'alert': s.aiAnalysis.recommendation,
                 },
               ),
-
               const SizedBox(height: 12),
-              RisksRedFlags(),
+              RisksRedFlags(
+                // data: {
+                //   'risks': s.aiAnalysis.risks
+                //       .map((r) => {
+                //             'type': r.type,
+                //             'severity': r.severity,
+                //             'description': r.description,
+                //             'mitigation': r.mitigation,
+                //           })
+                //       .toList(),
+                // },
+              ),
             ],
           ),
         );
 
+      // ------------------ MARKET & TRACTION ------------------
+      case "Market & Traction":
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Market Highlights", style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
+              ...s.market.highlights
+                  .map(
+                    (h) => ListTile(
+                      leading: const Icon(Icons.trending_up),
+                      title: Text(h, style: bodyStyle(14)),
+                    ),
+                  )
+                  .toList(),
+              const Divider(),
+              Text("Traction Highlights", style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
+              ...s.traction.highlights
+                  .map(
+                    (h) => ListTile(
+                      leading: const Icon(Icons.bolt),
+                      title: Text(h, style: bodyStyle(14)),
+                    ),
+                  )
+                  .toList(),
+            ],
+          ),
+        );
+
+      // ------------------ NOTIFICATIONS ------------------
       case "Notifications":
         return const NotificationsPage();
+
+      // ------------------ ACTIVITY TIMELINE ------------------
       case "Activity Timeline":
         return StartupTimeline();
+
+      // ------------------ AI INSIGHTS ------------------
       case "AI Insights":
-        return const AiInsightsDashboard();
+        return AiInsightsDashboard(startupId: widget.startupId);
+
+      // ------------------ GROWTH SIMULATIONS ------------------
       case "Growth Simulations":
-        // fix the error here
         return GrowthSimulation(startupId: widget.startupId);
+
+      // ------------------ DEFAULT ------------------
       default:
         return Center(
           child: Text("Coming soon: $section", style: bodyStyle(16)),
@@ -208,7 +285,7 @@ class _StartupProfilePageState extends State<StartupProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    Color kBackground = const Color.fromARGB(255, 255, 150, 69);
+    const kBackground = Color.fromARGB(255, 255, 150, 69);
     return Scaffold(
       backgroundColor: kBackground,
       body: SafeArea(
@@ -218,7 +295,6 @@ class _StartupProfilePageState extends State<StartupProfilePage> {
             Expanded(
               child: Row(
                 children: [
-                  // Sidebar
                   SidebarNav(
                     activeSection: _activeSection,
                     onSelect: (s) => setState(() => _activeSection = s),

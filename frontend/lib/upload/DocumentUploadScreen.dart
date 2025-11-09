@@ -23,6 +23,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   double _uploadProgress = 0.0;
   String? _errorMessage;
   PlatformFile? _selectedFile;
+  StartupFormData formData = StartupFormData();
 
   // --- Refined Theme Colors ---
   final Color kAccent = const Color(0xFFF35B04);
@@ -36,6 +37,76 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _setDefaultValues();
+  }
+
+  void _setDefaultValues() {
+    formData.companyName = "Cashvisory";
+    formData.foundingYear = "2021";
+    formData.industry = "Fintech";
+    formData.businessModel = "B2B SaaS";
+    formData.companyDescription =
+        "AI-driven financial wellness platform helping users optimize savings, investments, and taxes.";
+    formData.headquarters = "Bengaluru, India";
+    formData.targetMarkets = "India, Southeast Asia";
+
+    formData.productStage = "Launched";
+    formData.competitiveAdvantage =
+        "Proprietary AI scoring model and deep integrations with major banks.";
+    formData.tam = "2150000000";
+
+    formData.arr = "2000000";
+    formData.mrr = "180000";
+    formData.growthRate = "120";
+    formData.grossMargin = "82";
+    formData.burnRate = "50000";
+    formData.runway = "18";
+
+    formData.totalCustomers = "1200";
+    formData.fortune500Customers = "3";
+    formData.churnRate = "5";
+    formData.logoRetention = "95";
+    formData.nrr = "125";
+    formData.cac = "300";
+    formData.ltv = "1200";
+    formData.customerConcentration = "15";
+
+    formData.teamSize = "3";
+    formData.founders = [
+      Founder()
+        ..name = "Sumalata Kamat"
+        ..role = "CEO"
+        ..experience = "10"
+        ..exitExperience = "Yes",
+      Founder()
+        ..name = "Divya Krishna"
+        ..role = "CTO"
+        ..experience = "8"
+        ..exitExperience = "No",
+      Founder()
+        ..name = "Karthik Chandrashekhar"
+        ..role = "CFO"
+        ..experience = "12"
+        ..exitExperience = "Yes",
+    ];
+
+    formData.teamFromFAANG = "2";
+    formData.technicalTeam = "70";
+
+    formData.fundingStage = "Seed";
+    formData.totalRaised = "1800000";
+    formData.lastValuation = "7200000";
+    formData.currentAsk = "1500000";
+    formData.targetValuation = "10000000";
+    formData.useOfFunds =
+        "Team expansion, go-to-market, and AI model training.";
+    formData.exitStrategy = "IPO or strategic acquisition by fintech major.";
+    formData.investorNames = "Gradient Ventures, Blume Capital";
+
+    formData.pitchDeckUrl =
+        "https://storage.googleapis.com/lumora-datasets/pitchdeck/cashvisory-sep-2025.pdf";
+    formData.financialModelUrl =
+        "https://storage.googleapis.com/lumora-datasets/models/cashvisory-finmodel.xlsx";
   }
 
   Future<void> _pickFile() async {
@@ -165,7 +236,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [_buildUploadTab(), const StartupRegistrationForm()],
+                children: [
+                  _buildUploadTab(),
+                  StartupRegistrationForm(initialFormData: formData),
+                ],
               ),
             ),
           ],
@@ -287,7 +361,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               _buildExtractionType(
                 icon: Icons.auto_awesome_rounded,
                 title: "AI Summary",
-                description: "Instant smart analysis",
+                description: "Instant smart analysis ",
               ),
             ],
           ),
@@ -426,7 +500,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      width: 250,
+      width: 292,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kCard,
